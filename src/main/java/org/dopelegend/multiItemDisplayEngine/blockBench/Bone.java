@@ -1,13 +1,6 @@
 package org.dopelegend.multiItemDisplayEngine.blockBench;
 
-import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.ItemDisplay;
-import org.bukkit.inventory.ItemStack;
-import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
-import org.dopelegend.multiItemDisplayEngine.utils.CustomModelData;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
 import java.util.ArrayList;
@@ -29,8 +22,6 @@ public class Bone {
     private Bone[] childrenBones;
     private Bone parentBone;
 
-    boolean hasElement;
-
     /**
      *
      * @param relPivot The origin represented by 3 doubles in the form of a triple.
@@ -45,7 +36,33 @@ public class Bone {
         this.childrenBones = childrenBones;
         this.elements = elements;
         this.parentBone = parentBone;
-        this.hasElement = false;
+    }
+
+    /**
+     *
+     * @param bone The bone that should be copied
+     */
+    public Bone(Bone bone, Bone parentBone) {
+        this.relPivot = bone.getRelOrigin();
+        this.UUID = bone.getUUID();
+
+        Bone[] oldBones = bone.getChildrenBones();
+        List<Bone> newBones = new ArrayList<>();
+
+        for (Bone oldBone : oldBones){
+            newBones.add(new Bone(oldBone, this));
+        }
+        this.childrenBones = newBones.toArray(new Bone[0]);
+
+        Element[] oldElements = bone.getElements();
+        List<Element> newElements = new ArrayList<>();
+
+        for (Element oldElement : oldElements){
+            newElements.add(new Element(oldElement));
+        }
+        this.elements = newElements.toArray(new Element[0]);
+
+        this.parentBone = parentBone;
     }
 
     public void spawn(Triple originPosition, World world){
@@ -91,5 +108,9 @@ public class Bone {
 
     public void setParentBone(Bone parentBone) {
         this.parentBone = parentBone;
+    }
+
+    public Element[] getElements() {
+        return elements;
     }
 }

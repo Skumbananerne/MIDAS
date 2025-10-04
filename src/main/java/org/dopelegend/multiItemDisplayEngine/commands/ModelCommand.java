@@ -13,7 +13,12 @@ public class ModelCommand {
             return 0;
         }
 
-        ItemDisplayGroup itemDisplayGroup = new ItemDisplayGroup(ctx.getSource().getLocation(), ctx.getArgument("model name", String.class));
+        ItemDisplayGroup itemDisplayGroup = ItemDisplayGroup.getItemDisplayGroup(ctx.getSource().getLocation(), ctx.getArgument("model name", String.class));
+
+        if(itemDisplayGroup == null) {
+            ctx.getSource().getSender().sendRichMessage("<red> <bold> Could not fin a model named: " + ctx.getArgument("model name", String.class));
+            return 0;
+        }
         itemDisplayGroup.Spawn();
         return 1;
     }

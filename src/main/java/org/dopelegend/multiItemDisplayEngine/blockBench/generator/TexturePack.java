@@ -6,6 +6,7 @@ import org.bukkit.Bukkit;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.Element;
 import org.dopelegend.multiItemDisplayEngine.files.utils.FileGetter;
+import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.utils.Uuid;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
@@ -19,7 +20,6 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 public class TexturePack {
-    private static File[] allModels = null;
     /**
      *
      * Gets all model files in the model folder
@@ -27,7 +27,6 @@ public class TexturePack {
      * @return Array of all model files in the model folder and null if no files were found.
      */
     public static File[] getAllFiles() {
-        if(allModels != null) return allModels;
         File dir = FileGetter.getModelFolder();
         FilenameFilter filter = (file, name) -> name.toLowerCase().endsWith("bbmodel");
 
@@ -46,11 +45,17 @@ public class TexturePack {
         if (files==null) return true;
 
         JsonObject[] modelFilesJson = new JsonObject[files.length];
+        String[] modelFilesName = new String[files.length];
         Gson gson = new Gson();
+
+        ItemDisplayGroup.resetRegisteredItemDisplayGroup();
         for (int i = 0; i < files.length; i++){
             try(FileReader reader = new FileReader(files[i])){
                 JsonElement root = gson.fromJson(reader, JsonElement.class);
                 modelFilesJson[i] = root.getAsJsonObject();
+                modelFilesName[i] = files[i].getName().substring(0, files[i].getName().lastIndexOf('.'));
+
+                ItemDisplayGroup itemDisplayGroup = new ItemDisplayGroup(files[i].getName().substring(0, files[i].getName().lastIndexOf('.')));
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -64,7 +69,7 @@ public class TexturePack {
         workingDir.mkdirs();
 
         try{
-            Element[] elements = getAllElements(modelFilesJson);
+            Element[] elements = getAllElements(modelFilesJson, modelFilesName);
             // Generate file structure
             generatePackMeta(workingDir);
             generateModelOverrider(workingDir, elements);
@@ -79,9 +84,24 @@ public class TexturePack {
 
         //DEV
         try {
-            Files.delete(Path.of("C:\\Users\\tenna\\AppData\\Roaming\\.minecraft\\resourcepacks\\" + texturePackName));
-            Path textFolder = Paths.get("C:\\Users\\tenna\\AppData\\Roaming\\.minecraft\\resourcepacks");
-            Files.move(workingDir.toPath(), textFolder.resolve(workingDir.getName()));
+            Path appData = Paths.get(System.getenv("APPDATA"));
+            Path resourcePacks = appData.resolve(".minecraft").resolve("resourcepacks");
+            Path targetPack = resourcePacks.resolve(texturePackName);
+
+            // Delete folder recursively if it exists
+            if (Files.exists(targetPack)) {
+                Files.walk(targetPack)
+                        .sorted((a, b) -> b.compareTo(a)) // delete children before parent
+                        .forEach(path -> {
+                            try {
+                                Files.delete(path);
+                            } catch (IOException e) {
+                                MultiItemDisplayEngine.plugin.getLogger().warning(Arrays.toString(e.getStackTrace()));
+                            }
+                        });
+            }
+
+            Files.move(workingDir.toPath(), resourcePacks.resolve(workingDir.getName()));
         } catch (Exception e){
             MultiItemDisplayEngine.plugin.getLogger().warning(e.getMessage());
             MultiItemDisplayEngine.plugin.getLogger().warning(Arrays.toString(e.getStackTrace()));
@@ -327,167 +347,13 @@ public class TexturePack {
     }
 
 
-    /**
-     *
-     * Gets all textures from a model file root object
-     *
-     * @param modelData The root JsonObject in model file
-     *
-     * @return A list of JsonObject or an empty list if none were found
-     */
-    private static JsonObject[] getAllTexture(JsonObject modelData){
-        JsonArray textureArray = modelData.get("textures").getAsJsonArray();
-        JsonObject[] textures = new JsonObject[textureArray.size()];
-        for (int i = 0; i < textures.length; i++) {
-            textures[i] = textureArray.get(i).getAsJsonObject();
-        }
-        return textures;
-    }
-
-
-    private static Element[] getAllElements(JsonObject[] modelFilesJson){
+    private static Element[] getAllElements(JsonObject[] modelFilesJson, String[] fileName){
         List<Element> elements = new ArrayList<>();
-        for (JsonObject modelFile : modelFilesJson) {
-            Element[] el = Element.getAllElementFromFile(modelFile);
+        for (int i = 0; i < modelFilesJson.length; i++) {
+            Element[] el = Element.getAllElementFromFile(modelFilesJson[i], fileName[i]);
             elements.addAll(Arrays.asList(el));
         }
         return elements.toArray(new Element[0]);
-    }
-
-    /**
-     *
-     * Gets all immediate children elements from a bone
-     *
-     * @param modelData The root JsonObject in model file
-     * @param bone The bone that is going to be searched
-     *
-     * @return A list of JsonObject or an empty list if none were found
-     */
-    private static JsonObject[] getAllElementsFromBone(JsonObject modelData, JsonObject bone){
-        // get all elements in file
-        JsonArray elementsArray = modelData.get("elements").getAsJsonArray();
-        JsonObject[] elements = new JsonObject[elementsArray.size()];
-        for (int i = 0; i < elements.length; i++) {
-            elements[i] = elementsArray.get(i).getAsJsonObject();
-        }
-
-        List<JsonObject> outputElements = new ArrayList<>();
-        JsonArray childrenArray = bone.get("children").getAsJsonArray();
-
-        // loop each child the bone has
-        for (int i = 0; i < childrenArray.size(); i++) {
-            // if entry is uuid(string)
-            if (!(childrenArray.get(i) instanceof JsonObject)) {
-                String childId = childrenArray.get(i).getAsString();
-                // loop all elements in file
-                for(JsonObject obj : elements){
-                    // add if same uuid
-                    if(Objects.equals(obj.get("uuid").getAsString(), childId)) outputElements.add(obj);
-                }
-            }
-        }
-        return outputElements.toArray(new JsonObject[0]);
-    }
-
-
-    /**
-     *
-     * Gets an array with all the bones in all .bbmodel files.
-     *
-     * @return The array with all the bones.
-     */
-    private static JsonObject[] getAllBones(){
-        File[] allModels = getAllFiles();
-        List<JsonObject> bones = new ArrayList<>();
-        for (File modelFile : allModels) {
-            JsonObject modelData;
-            Gson gson = new Gson();
-
-            //Get rootJsonObject
-            try(FileReader reader = new FileReader(modelFile)){
-                JsonElement root = gson.fromJson(reader, JsonElement.class);
-                modelData = root.getAsJsonObject();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-            JsonArray boneArray = modelData.get("outliner").getAsJsonArray();
-            JsonObject rootBone = boneArray.get(0).getAsJsonObject();
-            bones.add(rootBone);
-            bones.addAll(Arrays.stream(getChildBones(rootBone)).toList());
-        }
-        return bones.toArray(new JsonObject[0]);
-    }
-
-    /**
-     *
-     * Gets an list of pairs with all the bones in all .bbmodel files and all the rootJsonObjects belonging to them.
-     *
-     * @return The List of pairs with all the bones and root files, pair.left is the bone, and pair.right is the rootJsonObject.
-     */
-    private static List<Pair<JsonObject, JsonObject>> getAllBonesWithRootJson(){
-        File[] allModels = getAllFiles();
-        List<Pair<JsonObject, JsonObject>> bonesAndRootJson = new ArrayList<>();
-        for (File modelFile : allModels) {
-            JsonObject modelData;
-            Gson gson = new Gson();
-
-            //Get rootJsonObject
-            try(FileReader reader = new FileReader(modelFile)){
-                JsonElement root = gson.fromJson(reader, JsonElement.class);
-                modelData = root.getAsJsonObject();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-            JsonArray boneArray = modelData.get("outliner").getAsJsonArray();
-            JsonObject rootBone = boneArray.get(0).getAsJsonObject();
-            bonesAndRootJson.add(Pair.of(rootBone, modelData));
-            bonesAndRootJson.addAll(getChildBonesWithRootJson(rootBone, modelData));
-        }
-        return bonesAndRootJson;
-    }
-
-    /**
-     *
-     * Gets all the bones under the root bone in the bone hierarchy.
-     *
-     * @param bone The root bone
-     * @return All the bones under the bone.
-     */
-    private static JsonObject[] getChildBones(JsonObject bone) {
-        JsonArray childrenArray = bone.get("children").getAsJsonArray();
-
-        List<JsonObject> bones = new ArrayList<>();
-        for (int i = 0; i < childrenArray.size(); i++) {
-            if (childrenArray.get(i) instanceof JsonObject) {
-                JsonObject childBone = childrenArray.get(i).getAsJsonObject();
-                bones.addAll(Arrays.asList(getChildBones(childBone)));
-                bones.add(childBone);
-            }
-        }
-        return bones.toArray(new JsonObject[0]);
-    }
-
-    /**
-     *
-     * Gets all the bones under the root bone in the bone hierarchy, and adds the rootJsonObject to all of them.
-     *
-     * @param bone The root bone
-     * @param rootJson The rootJsonObject
-     * @return All the bones under the bone and the rootJson in a list of pairs where pair.left is the bone, and pair.right is the rootJson.
-     */
-    private static List<Pair<JsonObject, JsonObject>> getChildBonesWithRootJson(JsonObject bone, JsonObject rootJson) {
-        JsonArray childrenArray = bone.get("children").getAsJsonArray();
-
-        List<Pair<JsonObject, JsonObject>> bonesAndRootJson = new ArrayList<>();
-
-        for (int i = 0; i < childrenArray.size(); i++) {
-            if (childrenArray.get(i) instanceof JsonObject) {
-                JsonObject childBone = childrenArray.get(i).getAsJsonObject();
-                bonesAndRootJson.add(Pair.of(childBone, rootJson));
-                bonesAndRootJson.addAll(getChildBonesWithRootJson(childBone, rootJson));
-            }
-        }
-        return bonesAndRootJson;
     }
 
 

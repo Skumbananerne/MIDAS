@@ -73,7 +73,7 @@ public class FileReader {
         //Get rootBone
 
         JsonObject boneObject = modelData.getAsJsonArray("outliner").get(0).getAsJsonObject();
-        return createBone(boneObject, null, modelData);
+        return createBone(boneObject, null, modelData, modelFile.getName().substring(0, modelFile.getName().lastIndexOf('.')));
     }
 
 
@@ -81,13 +81,13 @@ public class FileReader {
      *
      * Gets a bone from a json bone object and the parent bone, use parent bone null for root bones. This function iterates over itself to create child bones.
      *
-     * @param outlinerObject The jsonObject of the outliner
+     * @param outlineObject The jsonObject of the outline
      * @param parent Parent bone
      * @return Created bone
      */
-    static private Bone createBone(JsonObject outlinerObject, Bone parent, JsonObject rootJson){
-        JsonArray originArray = outlinerObject.getAsJsonArray("origin");
-        JsonArray childrenArray = outlinerObject.getAsJsonArray("children");
+    static private Bone createBone(JsonObject outlineObject, Bone parent, JsonObject rootJson, String fileName){
+        JsonArray originArray = outlineObject.getAsJsonArray("origin");
+        JsonArray childrenArray = outlineObject.getAsJsonArray("children");
 
         List<String> uuids = new ArrayList<>();
         List<Element> elements = new ArrayList<>();
@@ -99,7 +99,7 @@ public class FileReader {
         }
 
         for(String uuid : uuids){
-            elements.add(Element.getElementFromUuid(rootJson, uuid));
+            elements.add(Element.getElementFromUuid(rootJson, uuid, fileName));
         }
 
 
@@ -120,7 +120,7 @@ public class FileReader {
             if(!(object instanceof JsonObject)){
                 continue;
             }
-            childrenBones.add(createBone(childrenArray.get(i).getAsJsonObject(), bone, rootJson));
+            childrenBones.add(createBone(childrenArray.get(i).getAsJsonObject(), bone, rootJson, fileName));
         }
         Bone[] childrenBoneArray = childrenBones.toArray((new Bone[0]));
         bone.setChildrenBone(childrenBoneArray);

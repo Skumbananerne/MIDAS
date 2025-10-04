@@ -11,11 +11,14 @@ import org.bukkit.World;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Transformation;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.utils.CustomModelData;
 import org.dopelegend.multiItemDisplayEngine.utils.Uuid;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,10 +56,10 @@ public class Element {
      * @param elementJson The JsonObject representing one full element in a .bbmodel file.
      * @param rootJson The JsonObject representing the entire .bbmodel file.
      */
-    public Element (JsonObject elementJson, JsonObject rootJson){
+    public Element (JsonObject elementJson, JsonObject rootJson, String fileName){
 
         try {
-            this.fileName = rootJson.get("name").getAsString();
+            this.fileName = fileName;
 
             this.resolution[0] = rootJson.get("resolution").getAsJsonObject().get("width").getAsDouble();
             this.resolution[1] = rootJson.get("resolution").getAsJsonObject().get("height").getAsDouble();
@@ -126,6 +129,29 @@ public class Element {
         }
     }
 
+    /**
+     *
+     * Copies an element from another element
+     *
+     * @param element The JsonObject representing the entire .bbmodel file.
+     */
+    public Element (Element element){
+        this.from = element.getFrom();
+        this.to = element.getTo();
+        this.origin = element.getOrigin();
+        this.rotation = element.getRotation();
+        this.uuid = element.getUuid();
+        this.fileName = element.getFileName();
+        this.resolution = element.getResolution();
+        this.faces = element.getFaces();
+        this.faceNorth = element.getFaceNorth();
+        this.faceEast = element.getFaceEast();
+        this.faceSouth = element.getFaceSouth();
+        this.faceWest = element.getFaceWest();
+        this.faceUp = element.getFaceUp();
+        this.faceDown = element.getFaceDown();
+    }
+
 
     /**
      *
@@ -136,19 +162,31 @@ public class Element {
      */
     public void spawn(Triple originPosition, World world){
         // Make spawn location
-        Location spawnLoc = new Location(world, originPosition.x+this.from.x/16, originPosition.y+this.from.y/16, originPosition.z+this.from.z/16);
+        // 2) Corner you want to touch the block center
+        double ax = Math.max(this.from.x, this.to.x); // max X
+        double ay = Math.min(this.from.y, this.to.y); // min Y
+        double az = Math.max(this.from.z, this.to.z); // max Z
+
+        // 3) Map to world. If originPosition is the block CENTER, subtract 8
+        double wx = originPosition.x + (ax - 8.0)/16.0;
+        double wy = originPosition.y + (ay - 8.0)/16.0;
+        double wz = originPosition.z + (az - 8.0)/16.0;
+
+        Location spawnLoc = new Location(world, wx, wy, wz);
         // Spawn item Display
-        ItemDisplay itemDisplay = (ItemDisplay) world.spawnEntity(spawnLoc, EntityType.ITEM_DISPLAY);
+        this.itemDisplay = (ItemDisplay) world.spawnEntity(spawnLoc, EntityType.ITEM_DISPLAY);
         // Set rotation
-//        itemDisplay.setTransformation();
+        itemDisplay.setTransformation(new Transformation(
+                new Vector3f(),
+                new Quaternionf(),
+                new Vector3f(1f, 1f, 1f),
+                new Quaternionf().rotateXYZ((float)Math.toRadians(this.rotation.x), (float)Math.toRadians(this.rotation.y), (float)Math.toRadians(this.rotation.z))
+        ));
         // Set model
         itemDisplay.setItemStack(CustomModelData.addCustomModelData(this.fileName+"_"+this.uuid, new ItemStack(Material.DIAMOND_BLOCK)));
+
     }
 
-    //idk if this is even the right thing here if i should get from file or from bone or whatever
-    // maybe i need to do something completely else if things fuck up check where this is used
-    // this is maybe the cause
-    // my brain is getting fucked by this
 
     /**
      *
@@ -157,11 +195,11 @@ public class Element {
      * @param file The root json of the .bbmodel file
      * @return The array of elements or an empty array if there's no elements
      */
-    public static Element[] getAllElementFromFile(JsonObject file){
+    public static Element[] getAllElementFromFile(JsonObject file, String fileName){
         JsonArray jsonElements = file.get("elements").getAsJsonArray();
         Element[] elements = new Element[jsonElements.size()];
         for (int i = 0 ; i < jsonElements.size() ; i++){
-            elements[i] = new Element(jsonElements.get(i).getAsJsonObject(), file);
+            elements[i] = new Element(jsonElements.get(i).getAsJsonObject(), file, fileName);
         }
         return elements;
     }
@@ -174,10 +212,10 @@ public class Element {
      * @param uuid The uuid to look for. This is the Uuid in the .bbmodel file.
      * @return Returns an element with the uuid or null if it isn't in the file
      */
-    public static Element getElementFromUuid(JsonObject rootJson, String uuid){
+    public static Element getElementFromUuid(JsonObject rootJson, String uuid, String fileName){
         for (JsonElement element : rootJson.get("elements").getAsJsonArray()){
             if (Objects.equals(element.getAsJsonObject().get("uuid").getAsString(), uuid)){
-                return new Element(element.getAsJsonObject(), rootJson);
+                return new Element(element.getAsJsonObject(), rootJson, fileName);
             }
         }
         return null;
@@ -189,6 +227,14 @@ public class Element {
 
     public Triple getTo() {
         return to;
+    }
+
+    public Triple getRotation() {
+        return rotation;
+    }
+
+    public void setRotation(Triple rotation) {
+        this.rotation = rotation;
     }
 
     public Triple getOrigin() {
