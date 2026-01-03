@@ -4,8 +4,10 @@ import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.generator.TexturePack;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
+import org.dopelegend.multiItemDisplayEngine.texturePack.PackWebServer;
 
 public class ModelCommand {
     public static int spawnModelByNameCommand(CommandContext<CommandSourceStack> ctx) {
@@ -25,6 +27,7 @@ public class ModelCommand {
             return 0;
         }
         TexturePack.generateTexturePack();
+        MultiItemDisplayEngine.packWebServer.refreshTexturePack();
         return 1;
     }
 }

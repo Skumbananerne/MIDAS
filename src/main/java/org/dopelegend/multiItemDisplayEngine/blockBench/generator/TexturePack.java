@@ -5,12 +5,15 @@ import it.unimi.dsi.fastutil.Pair;
 import org.bukkit.Bukkit;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.files.utils.FileGetter;
+import org.dopelegend.multiItemDisplayEngine.files.utils.Zip;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
+import java.util.zip.ZipEntry;
 
 public class TexturePack {
     private static File[] allModels = null;
@@ -24,7 +27,7 @@ public class TexturePack {
         if(allModels != null) return allModels;
         File dir = FileGetter.getModelFolder();
         FilenameFilter filter = (file, name) -> name.toLowerCase().endsWith("bbmodel");
-
+        allModels = dir.listFiles(filter);
         return dir.listFiles(filter);
     }
 
@@ -39,6 +42,7 @@ public class TexturePack {
 
 
         File[] files = getAllFiles();
+
         if (files==null) return true;
 
         // Change this to change the texture pack name
@@ -51,9 +55,10 @@ public class TexturePack {
         try{
             // Generate file structure
             generatePackMeta(workingDir);
-            generateModelOverrider(workingDir);
+            generateItemsFolder(workingDir);
             generateTextures(workingDir);
             generateModels(workingDir);
+
         } catch (Exception e) {
             deleteTexturepackFolder(workingDir);
             MultiItemDisplayEngine.plugin.getLogger().warning(e.getMessage());
@@ -63,16 +68,29 @@ public class TexturePack {
 
         //DEV
         try {
-            Files.delete(Path.of("C:\\Users\\tenna\\AppData\\Roaming\\.minecraft\\resourcepacks\\" + texturePackName));
-            Path textFolder = Paths.get("C:\\Users\\tenna\\AppData\\Roaming\\.minecraft\\resourcepacks");
-            Files.move(workingDir.toPath(), textFolder.resolve(workingDir.getName()));
+            File tempZip = FileGetter.getTempFolder()
+                    .toPath()
+                    .resolve("pack.zip")
+                    .toFile();
+
+            File finalZip = FileGetter.getTexturePackFolder()
+                    .toPath()
+                    .resolve("pack.zip")
+                    .toFile();
+
+            Zip.zip(workingDir, tempZip);
+
+            Files.move(
+                    tempZip.toPath(),
+                    finalZip.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING
+            );
         } catch (Exception e){
             MultiItemDisplayEngine.plugin.getLogger().warning(e.getMessage());
             MultiItemDisplayEngine.plugin.getLogger().warning(Arrays.toString(e.getStackTrace()));
             return  false;
         }
 
-        //deleteTexturepackFolder(workingDir);
         return true;
     }
 
@@ -104,11 +122,11 @@ public class TexturePack {
 
     /**
      *
-     * Generates the model overrider file in the texture pack (workingDir/assets/minecraft/items/diamond.json), the workingDir is the root texturepack file.
+     * Generates the model overrider file in the texture pack (workingDir/assets/midas/items/diamond.json), the workingDir is the root texturepack file.
      *
      * @param workingDir The root texturepack file
      */
-    private static void generateModelOverrider(File workingDir){
+    private static void generateItemsFolder(File workingDir){
         // Generate pack.mcmeta
         try {
             JsonArray cases = new JsonArray();
@@ -150,7 +168,7 @@ public class TexturePack {
             String json = gson.toJson(root);
 
             // Write to file
-            File file = new File(workingDir, "assets/minecraft/items/diamond_block.json");
+            File file = new File(workingDir, "assets/midas/items/diamond_block.json");
             file.getParentFile().mkdirs();
             Files.writeString(file.toPath(), json);
         }catch (Exception e){
@@ -160,7 +178,7 @@ public class TexturePack {
 
     /**
      *
-     * Generates the models folder (workingDir/assets/minecraft/models) and its subdirectories (models/item/uuid.json).
+     * Generates the models folder (workingDir/assets/midas/models) and its subdirectories (models/item/uuid.json).
      * The main point of this function is creating all the modelname.json files from the .bbmodel files in the plugin's models folder
      *
      * @param workingDir The root texturepack file
@@ -168,7 +186,7 @@ public class TexturePack {
     private static void generateModels(File workingDir){
         //Get all bones
         List<Pair<JsonObject, JsonObject>> allBones = getAllBonesWithRootJson();
-        File itemModelsFolder = new File(workingDir, "assets/minecraft/models/item");
+        File itemModelsFolder = new File(workingDir, "assets/midas/models/item");
         if (!itemModelsFolder.exists()) {
             itemModelsFolder.mkdirs();
         }
@@ -337,7 +355,7 @@ public class TexturePack {
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
                 String json = gson.toJson(rootJson);
 
-                File file = new File(workingDir, "assets/minecraft/models/item/" + uuid + ".json");
+                File file = new File(workingDir, "assets/midas/models/item/" + uuid + ".json");
                 file.getParentFile().mkdirs();
                 Files.writeString(file.toPath(), json);
             } catch (IOException e) {
@@ -350,14 +368,14 @@ public class TexturePack {
 
     /**
      *
-     * Generates the textures folder (workingDir/assets/minecraft/textures) and its subdirectories (textures/item/uuid.).
+     * Generates the textures folder (workingDir/assets/midas/textures) and its subdirectories (textures/item/uuid.).
      * The main point of this function is creating all the texture files from the .bbmodel files in the plugin's models folder
      *
      * @param workingDir The root texturepack file
      */
     private static void generateTextures(File workingDir){
         //generate path
-        File textureFolder = new File(workingDir, "assets/minecraft/textures/item");
+        File textureFolder = new File(workingDir, "assets/midas/textures/item");
         textureFolder.mkdirs();
 
         File[] allModels = getAllFiles();
@@ -381,7 +399,7 @@ public class TexturePack {
 
                 File file = new File(
                         workingDir,
-                        "assets/minecraft/textures/item/" + texture.get("uuid").getAsString() + ".png"
+                        "assets/midas/textures/item/" + texture.get("uuid").getAsString() + ".png"
                 );
 
                 String source = texture.get("source").getAsString();
@@ -571,11 +589,9 @@ public class TexturePack {
             if (dir != null && dir.exists()) {
                 MultiItemDisplayEngine.plugin.getLogger().severe("Could not delete texturepack folder\n" + e.getMessage());
             }
-
             return false;
         }
 
     }
-
 }
 

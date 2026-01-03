@@ -1,0 +1,116 @@
+package org.dopelegend.multiItemDisplayEngine.texturePack;
+
+import com.sun.net.httpserver.Headers;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpServer;
+import net.kyori.adventure.resource.ResourcePackInfo;
+import net.kyori.adventure.resource.ResourcePackRequest;
+import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.dopelegend.multiItemDisplayEngine.files.utils.FileGetter;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.util.HexFormat;
+import java.util.UUID;
+
+public class PackWebServer extends JavaPlugin {
+    private HttpServer httpServer;
+    private Path packZipPath = FileGetter.getTexturePackFolder().toPath().resolve("pack.zip");
+
+    private final int port = 25566;
+    private final String packFileName = "pack.zip";
+    private final String publicHost = "83.94.2.3";
+
+    private final UUID packUuid = UUID.fromString("11111111-2222-3333-4444-555555555555");
+
+    public void startHttpServer() throws IOException {
+        httpServer = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
+
+        httpServer.createContext("/" + packFileName, this::handlePackRequest);
+
+        httpServer.setExecutor(null);
+        httpServer.start();
+
+        refreshTexturePack();
+    }
+
+    private void handlePackRequest(HttpExchange ex) throws IOException {
+        if (!Files.exists(packZipPath)) {
+            ex.sendResponseHeaders(404, -1);
+            ex.close();
+            return;
+        }
+
+        byte[] bytes = Files.readAllBytes(packZipPath);
+
+        Headers h = ex.getResponseHeaders();
+        h.set("Content-Type", "application/zip");
+        h.set("Content-Disposition", "attachment; filename=\"" + packFileName + "\"");
+        h.set("Cache-Control", "no-cache, no-store, must-revalidate");
+
+        ex.sendResponseHeaders(200, bytes.length);
+        try (OutputStream os = ex.getResponseBody()) {
+            os.write(bytes);
+        }
+    }
+
+    public boolean refreshTexturePack(){
+        ResourcePackInfo info;
+        try {
+            String sha1Hex = sha1Hex(packZipPath);
+            URI uri = URI.create("http://" + publicHost + ":" + port + "/" + packFileName);
+
+            info = ResourcePackInfo.resourcePackInfo(packUuid, uri, sha1Hex);
+        } catch (Exception e) {
+            return false;
+        }
+
+        ResourcePackRequest request = ResourcePackRequest.resourcePackRequest()
+                .packs(info)
+                .prompt(Component.text("This server uses a resource pack. Please accept to play."))
+                .required(true)
+                .build();
+
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            p.sendResourcePacks(request);
+        }
+
+        return true;
+    }
+
+    private static String sha1Hex(Path file) throws Exception {
+        MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
+        byte[] data = Files.readAllBytes(file);
+        byte[] digest = sha1.digest(data);
+        return HexFormat.of().formatHex(digest);
+    }
+
+    public boolean givePlayerPack(Player player){
+        ResourcePackInfo info;
+        try {
+            String sha1Hex = sha1Hex(packZipPath);
+            URI uri = URI.create("http://" + publicHost + ":" + port + "/" + packFileName);
+
+            info = ResourcePackInfo.resourcePackInfo(packUuid, uri, sha1Hex);
+        } catch (Exception e) {
+            return false;
+        }
+
+        ResourcePackRequest request = ResourcePackRequest.resourcePackRequest()
+                .packs(info)
+                .prompt(Component.text("This server uses a resource pack. Please accept to play."))
+                .required(true)
+                .build();
+        player.sendResourcePacks(request);
+
+        return true;
+    }
+}
