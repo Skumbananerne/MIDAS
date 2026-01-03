@@ -1,5 +1,6 @@
     package org.dopelegend.multiItemDisplayEngine;
 
+    import org.bukkit.configuration.file.FileConfiguration;
     import org.bukkit.plugin.Plugin;
     import org.bukkit.plugin.java.JavaPlugin;
     import org.dopelegend.multiItemDisplayEngine.blockBench.generator.TexturePack;
@@ -14,10 +15,15 @@
 
         public static Plugin plugin;
         public static PackWebServer packWebServer;
+        public static FileConfiguration config;
 
         @Override
         public void onEnable() {
             plugin = this;
+
+            saveDefaultConfig();
+            config = getConfig();
+
             FileStructure.generateEntireFileStructure();
             new CommandListener(this);
             TexturePack.generateTexturePack();

@@ -1,0 +1,9 @@
+overrides:
+  pack:
+    # Choose where the texturepack should be hosted (Requires server restaret)
+    # Local = Makes a webserver on the Minecraft server (requires another open port)
+    host-type: "local"
+    # Default: 25566
+    port:
+    # Default: Public ip
+    host:

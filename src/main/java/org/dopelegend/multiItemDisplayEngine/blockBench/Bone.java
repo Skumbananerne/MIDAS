@@ -29,6 +29,7 @@ public class Bone {
     private ItemDisplay itemDisplay;
     private List<Bone> childrenBones;;
     private Bone parentBone;
+    private String modelName;
 
     boolean hasElement;
 
@@ -59,13 +60,14 @@ public class Bone {
      * @param childrenBones All children direct child bones from this bone
      * @param UUID UUID of this bone
      */
-    public Bone(Triple relPivot, Triple offset, Bone parentBone, List<Bone> childrenBones, String UUID) {
+    public Bone(Triple relPivot, Triple offset, Bone parentBone, List<Bone> childrenBones, String UUID, String modelName) {
         this.relPivot = relPivot;
         this.UUID = UUID;
         this.childrenBones = childrenBones;
         this.parentBone = parentBone;
         this.hasElement = true;
         this.offset = offset;
+        this.modelName = modelName;
     }
 
     public void spawn(Triple originPosition, World world){
@@ -81,7 +83,7 @@ public class Bone {
 
             ItemStack itemDisplayItem = new ItemStack(Material.DIAMOND_BLOCK);
             //Set Custom Model Data
-            itemDisplayItem = CustomModelData.addCustomModelData(this.UUID, itemDisplayItem);
+            itemDisplayItem = CustomModelData.addCustomModelData("midas:" + modelName + "/" + this.UUID, itemDisplayItem);
             this.itemDisplay.setItemStack(itemDisplayItem);
         }
         for(int i = 0; i < this.childrenBones.size(); i++){

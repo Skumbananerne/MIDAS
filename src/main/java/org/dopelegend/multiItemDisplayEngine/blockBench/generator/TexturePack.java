@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.Pair;
 import org.bukkit.Bukkit;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.files.utils.FileGetter;
+import org.dopelegend.multiItemDisplayEngine.files.utils.FileUtil;
 import org.dopelegend.multiItemDisplayEngine.files.utils.Zip;
 
 import java.io.*;
@@ -39,16 +40,14 @@ public class TexturePack {
      * @return Whether the generation was successful or not
      */
     public static boolean generateTexturePack() {
-
-
         File[] files = getAllFiles();
 
         if (files==null) return true;
 
         // Change this to change the texture pack name
-        String texturePackName = "TexturePack";
+        String texturePackName = "pack";
         File workingDir = new File(FileGetter.getTempFolder(), texturePackName);
-        deleteTexturepackFolder(workingDir);
+        FileUtil.deleteDirectory(workingDir);
 
         workingDir.mkdirs();
 
@@ -60,7 +59,7 @@ public class TexturePack {
             generateModels(workingDir);
 
         } catch (Exception e) {
-            deleteTexturepackFolder(workingDir);
+            FileUtil.deleteDirectory(workingDir);
             MultiItemDisplayEngine.plugin.getLogger().warning(e.getMessage());
             MultiItemDisplayEngine.plugin.getLogger().warning(Arrays.toString(e.getStackTrace()));
             return false;
@@ -88,7 +87,9 @@ public class TexturePack {
         } catch (Exception e){
             MultiItemDisplayEngine.plugin.getLogger().warning(e.getMessage());
             MultiItemDisplayEngine.plugin.getLogger().warning(Arrays.toString(e.getStackTrace()));
-            return  false;
+            return false;
+        } finally {
+            //FileUtil.deleteDirectory(workingDir);
         }
 
         return true;
@@ -129,49 +130,47 @@ public class TexturePack {
     private static void generateItemsFolder(File workingDir){
         // Generate pack.mcmeta
         try {
-            JsonArray cases = new JsonArray();
-            JsonObject[] allBones = getAllBones();
+            List<Pair<JsonObject, JsonObject>> allBones = getAllBonesWithRootJson();
+            for (Pair<JsonObject, JsonObject> boneAndRoot : allBones) {
+                JsonObject rootObject = boneAndRoot.right();
+                JsonArray outliner = rootObject.getAsJsonArray("outliner");
+                String modelName = rootObject.get("name").getAsString();
 
-            for (JsonObject bone : allBones) {
-                //Todo skip if no elements in bone
-                String boneUuid = bone.get("uuid").getAsString();
+                JsonObject outlinerBone = getOutlinerBoneFromUUID(boneAndRoot.left().get("uuid").getAsString(), outliner);
 
-                JsonObject boneEntry = new JsonObject();
-                boneEntry.addProperty("when", boneUuid);
+                for (JsonElement child : outlinerBone.get("children").getAsJsonArray()) {
+                    if (child instanceof JsonPrimitive elementID) {
+                        File itemsFile = new File(workingDir.toPath().resolve("assets/midas/items/" + modelName).toFile(), elementID.getAsString() + ".json");
 
-                JsonObject model = new JsonObject();
-                model.addProperty("type", "model");
-                model.addProperty("model", "item/" + boneUuid);
-                boneEntry.add("model", model);
+                        File parentFile = itemsFile.getParentFile();
+                        if(!parentFile.exists() && !parentFile.mkdirs()){
+                            MultiItemDisplayEngine.plugin.getLogger().warning("Could not create items folder " + itemsFile.getAbsolutePath());
+                            return;
+                        }
 
-                cases.add(boneEntry);
+                        JsonObject modelObject = new JsonObject();
+                        modelObject.addProperty("type", "minecraft:model");
+                        modelObject.addProperty("model", "midas:item/" + modelName + "/" + elementID.getAsString());
+
+                        JsonObject rootJsonObject = new JsonObject();
+
+                        rootJsonObject.add("model", modelObject);
+
+                        try {
+                            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+                            String json = gson.toJson(rootJsonObject);
+
+                            Files.writeString(itemsFile.toPath(), json);
+                        }
+                        catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
             }
 
-            // Fallback object
-            JsonObject fallback = new JsonObject();
-            fallback.addProperty("type", "model");
-            fallback.addProperty("model", "block/diamond_block");
-
-            // Model object
-            JsonObject model = new JsonObject();
-            model.addProperty("type", "select");
-            model.addProperty("property", "custom_model_data");
-            model.add("cases", cases);
-            model.add("fallback", fallback);
-
-            // Wrap it in root
-            JsonObject root = new JsonObject();
-            root.add("model", model);
-
-            // Pretty-print
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            String json = gson.toJson(root);
-
-            // Write to file
-            File file = new File(workingDir, "assets/midas/items/diamond_block.json");
-            file.getParentFile().mkdirs();
-            Files.writeString(file.toPath(), json);
-        }catch (Exception e){
+        }
+        catch (Exception e){
             throw new RuntimeException(e);
         }
     }
@@ -355,7 +354,7 @@ public class TexturePack {
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
                 String json = gson.toJson(rootJson);
 
-                File file = new File(workingDir, "assets/midas/models/item/" + uuid + ".json");
+                File file = new File(workingDir, "assets/midas/models/item/" + boneAndJsonRootPair.right().get("name").getAsString() + "/" + uuid + ".json");
                 file.getParentFile().mkdirs();
                 Files.writeString(file.toPath(), json);
             } catch (IOException e) {
@@ -399,8 +398,9 @@ public class TexturePack {
 
                 File file = new File(
                         workingDir,
-                        "assets/midas/textures/item/" + texture.get("uuid").getAsString() + ".png"
+                        "assets/midas/textures/item/" + modelData.get("name").getAsString() + "/" + texture.get("uuid").getAsString() + ".png"
                 );
+                file.getParentFile().mkdirs();
 
                 String source = texture.get("source").getAsString();
                 String base64Data = source.replaceFirst("^data:image/[^;]+;base64,", "");
@@ -445,29 +445,34 @@ public class TexturePack {
      * @return A list of JsonObject or an empty list if none were found
      */
     private static List<JsonObject> getAllElementsFromBone(JsonObject modelData, JsonObject bone){
-        // get all elements in file
-        JsonArray elementsArray = modelData.get("elements").getAsJsonArray();
-        JsonObject[] elements = new JsonObject[elementsArray.size()];
-        for (int i = 0; i < elements.length; i++) {
-            elements[i] = elementsArray.get(i).getAsJsonObject();
+        List<JsonObject> children = new ArrayList<>();
+        String uuid = bone.get("uuid").getAsString();
+        if (uuid == null){
+            MultiItemDisplayEngine.plugin.getLogger().warning("Missing uuid for bone: " + bone);
+            return children;
         }
 
-        List<JsonObject> outputElements = new ArrayList<>();
-        JsonArray childrenArray = bone.get("children").getAsJsonArray();
+        JsonArray elements = modelData.get("elements").getAsJsonArray();
+        if (elements == null){
+            MultiItemDisplayEngine.plugin.getLogger().warning("No elements in file with bone: " + bone);
+            return children;
+        }
 
-        // loop each child the bone has
-        for (int i = 0; i < childrenArray.size(); i++) {
-            // if entry is uuid(string)
-            if (!(childrenArray.get(i) instanceof JsonObject)) {
-                String childId = childrenArray.get(i).getAsString();
-                // loop all elements in file
-                for(JsonObject obj : elements){
-                    // add if same uuid
-                    if(Objects.equals(obj.get("uuid").getAsString(), childId)) outputElements.add(obj);
+        JsonArray outlinerArray = modelData.get("outliner").getAsJsonArray();
+
+        JsonObject outlinerBone = getOutlinerBoneFromUUID(uuid, outlinerArray);
+        for (JsonElement child : outlinerBone.get("children").getAsJsonArray()) {
+            if (!(child instanceof JsonPrimitive elementID)) continue;
+            for(JsonElement element : elements){
+                if (!(element instanceof JsonObject elementObject)) continue;
+
+                if (elementObject.get("uuid").getAsString().equals(elementID.getAsString())) {
+                    children.add(elementObject);
                 }
             }
         }
-        return outputElements;
+
+        return children;
     }
 
 
@@ -480,8 +485,10 @@ public class TexturePack {
     private static JsonObject[] getAllBones(){
         File[] allModels = getAllFiles();
         List<JsonObject> bones = new ArrayList<>();
+
         for (File modelFile : allModels) {
             JsonObject modelData;
+
             Gson gson = new Gson();
 
             //Get rootJsonObject
@@ -491,10 +498,24 @@ public class TexturePack {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-            JsonArray boneArray = modelData.get("outliner").getAsJsonArray();
-            JsonObject rootBone = boneArray.get(0).getAsJsonObject();
+
+            // Get rootbone in outliner
+            JsonArray outlinerArray = modelData.get("outliner").getAsJsonArray();
+            JsonObject rootOutlinerBone = outlinerArray.get(0).getAsJsonObject();
+
+            // Get group
+            JsonArray groupArray = modelData.get("groups").getAsJsonArray();
+
+
+            // Get root bone
+            JsonObject rootBone = getBoneFromUUID(rootOutlinerBone.get("uuid").getAsString(), groupArray);
+
+            if (rootBone.isEmpty()){
+                return new JsonObject[0];
+            }
+
             bones.add(rootBone);
-            bones.addAll(Arrays.stream(getChildBones(rootBone)).toList());
+            bones.addAll(Arrays.stream(getChildBones(rootOutlinerBone, groupArray)).toList());
         }
         return bones.toArray(new JsonObject[0]);
     }
@@ -519,10 +540,19 @@ public class TexturePack {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-            JsonArray boneArray = modelData.get("outliner").getAsJsonArray();
-            JsonObject rootBone = boneArray.get(0).getAsJsonObject();
+            // Get rootbone in outliner
+            JsonArray outlinerArray = modelData.get("outliner").getAsJsonArray();
+            JsonObject rootOutlinerBone = outlinerArray.get(0).getAsJsonObject();
+
+            // Get group
+            JsonArray groupArray = modelData.get("groups").getAsJsonArray();
+
+
+            // Get root bone
+            JsonObject rootBone = getBoneFromUUID(rootOutlinerBone.get("uuid").getAsString(), groupArray);
+
             bonesAndRootJson.add(Pair.of(rootBone, modelData));
-            bonesAndRootJson.addAll(getChildBonesWithRootJson(rootBone, modelData));
+            bonesAndRootJson.addAll(getChildBonesWithRootJson(rootOutlinerBone, modelData, groupArray));
         }
         return bonesAndRootJson;
     }
@@ -531,18 +561,19 @@ public class TexturePack {
      *
      * Gets all the bones under the root bone in the bone hierarchy.
      *
-     * @param bone The root bone
+     * @param outlinerBone The root bone
+     * @param groupArray The JsonArray called 'groups' with all the bones
      * @return All the bones under the bone.
      */
-    private static JsonObject[] getChildBones(JsonObject bone) {
-        JsonArray childrenArray = bone.get("children").getAsJsonArray();
+    private static JsonObject[] getChildBones(JsonObject outlinerBone, JsonArray groupArray) {
+        JsonArray childrenArray = outlinerBone.get("children").getAsJsonArray();
 
         List<JsonObject> bones = new ArrayList<>();
-        for (int i = 0; i < childrenArray.size(); i++) {
-            if (childrenArray.get(i) instanceof JsonObject) {
-                JsonObject childBone = childrenArray.get(i).getAsJsonObject();
-                bones.addAll(Arrays.asList(getChildBones(childBone)));
-                bones.add(childBone);
+        for (JsonElement child : childrenArray) {
+            if (child instanceof JsonObject childObject) {
+                if (childObject.isJsonPrimitive()){continue;}
+                bones.addAll(Arrays.asList(getChildBones(childObject, groupArray)));
+                bones.add(getBoneFromUUID(childObject.get("uuid").getAsString(), groupArray));
             }
         }
         return bones.toArray(new JsonObject[0]);
@@ -556,42 +587,85 @@ public class TexturePack {
      * @param rootJson The rootJsonObject
      * @return All the bones under the bone and the rootJson in a list of pairs where pair.left is the bone, and pair.right is the rootJson.
      */
-    private static List<Pair<JsonObject, JsonObject>> getChildBonesWithRootJson(JsonObject bone, JsonObject rootJson) {
+    private static List<Pair<JsonObject, JsonObject>> getChildBonesWithRootJson(JsonObject bone, JsonObject rootJson, JsonArray groupArray) {
         JsonArray childrenArray = bone.get("children").getAsJsonArray();
 
         List<Pair<JsonObject, JsonObject>> bonesAndRootJson = new ArrayList<>();
 
-        for (int i = 0; i < childrenArray.size(); i++) {
-            if (childrenArray.get(i) instanceof JsonObject) {
-                JsonObject childBone = childrenArray.get(i).getAsJsonObject();
-                bonesAndRootJson.add(Pair.of(childBone, rootJson));
-                bonesAndRootJson.addAll(getChildBonesWithRootJson(childBone, rootJson));
+        for (JsonElement child : childrenArray) {
+            if (child instanceof JsonObject childObject) {
+                if (childObject.isJsonPrimitive()){continue;}
+                bonesAndRootJson.add(Pair.of(getBoneFromUUID(childObject.get("uuid").getAsString(), groupArray), rootJson));
+                bonesAndRootJson.addAll(getChildBonesWithRootJson(childObject, rootJson, groupArray));
             }
         }
         return bonesAndRootJson;
     }
 
+    /**
+     *
+     * Get a bone in the 'groups' JsonArray from its UUID
+     *
+     * @param uuid The uuid to search for
+     * @param groupArray The JsonArray 'groups' in the .bbmodel file
+     * @return The bone or an empty JsonObject if none was found
+     */
+    private static JsonObject getBoneFromUUID(String uuid, JsonArray groupArray){
 
-    private static boolean deleteTexturepackFolder(File dir){
-        try {
-            if (dir.isDirectory()) {
-                File[] files = dir.listFiles();
-                if (files != null) {
-                    for (File f : files) {
-                        if (!deleteTexturepackFolder(f)) {
-                            return false;
-                        }
-                    }
-                }
+        JsonObject targetBone =  new JsonObject();
+        // Get bone
+        for (JsonElement bone : groupArray){
+            if (!(bone instanceof JsonObject boneObject)){
+                MultiItemDisplayEngine.plugin.getLogger().warning("'groups' jsonArray had a none JsonObject JsonElement (shouldn't be possible) bone info:"+bone.toString());
+                continue;}
+            if (boneObject.get("uuid").getAsString().equals(uuid)){
+                targetBone = boneObject;
+                break;
             }
-            return dir.delete();
-        } catch (Exception e){
-            if (dir != null && dir.exists()) {
-                MultiItemDisplayEngine.plugin.getLogger().severe("Could not delete texturepack folder\n" + e.getMessage());
-            }
-            return false;
         }
 
+        return targetBone;
+    }
+
+    /**
+     *
+     * Get a bone in the 'outliner' JsonArray from its UUID
+     *
+     * @param uuid The uuid to search for
+     * @param outlinerArray The JsonArray 'groups' in the .bbmodel file
+     * @return The bone or an empty JsonObject if none was found
+     */
+    private static JsonObject getOutlinerBoneFromUUID(String uuid, JsonArray outlinerArray){
+
+        // Get rootBone
+        JsonObject rootBone = outlinerArray.get(0).getAsJsonObject();
+        if (rootBone.get("uuid").getAsString().equals(uuid)){return rootBone;}
+
+        return getOutlinerBoneFromBoneAndUUID(uuid, rootBone);
+    }
+
+    /**
+     *
+     * Get a bone in the 'outliner' JsonArray from its UUID
+     *
+     * @param uuid The uuid to search for
+     * @param outlinerBone The JsonObject with the bone to search in the .bbmodel file
+     * @return The bone or an empty JsonObject if none was found
+     */
+    private static JsonObject getOutlinerBoneFromBoneAndUUID(String uuid, JsonObject outlinerBone){
+
+
+        // Check if bone matches
+        if (outlinerBone.get("uuid").getAsString().equals(uuid)){return outlinerBone;}
+
+        // Loop through children
+        for (JsonElement bone : outlinerBone.get("children").getAsJsonArray()){
+            if (!(bone instanceof JsonObject boneObject)){continue;}
+
+            return getOutlinerBoneFromBoneAndUUID(uuid, boneObject);
+        }
+
+        return new JsonObject();
     }
 }
 

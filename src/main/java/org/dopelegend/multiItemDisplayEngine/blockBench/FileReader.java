@@ -113,7 +113,8 @@ public class FileReader {
                     new Triple(elementPos.get(0).getAsDouble(), elementPos.get(1).getAsDouble(), elementPos.get(2).getAsDouble()),
                     parent,
                     new ArrayList<>(),
-                    boneObject.get("uuid").getAsString()
+                    boneObject.get("uuid").getAsString(),
+                    modelData.get("name").getAsString()
             );
         }
 

@@ -9,12 +9,16 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.files.utils.FileGetter;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -25,19 +29,26 @@ public class PackWebServer extends JavaPlugin {
     private HttpServer httpServer;
     private Path packZipPath = FileGetter.getTexturePackFolder().toPath().resolve("pack.zip");
 
-    private final int port = 25566;
+    private int defPort = 25566;
     private final String packFileName = "pack.zip";
-    private final String publicHost = "83.94.2.3";
+    private String publicHost;
 
     private final UUID packUuid = UUID.fromString("11111111-2222-3333-4444-555555555555");
 
     public void startHttpServer() throws IOException {
-        httpServer = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
+        if(MultiItemDisplayEngine.config.getString("overrides.pack.host-type", "local").equalsIgnoreCase("local")){
+            httpServer = HttpServer.create(new InetSocketAddress("0.0.0.0", defPort), 0);
 
-        httpServer.createContext("/" + packFileName, this::handlePackRequest);
+            httpServer.createContext("/" + packFileName, this::handlePackRequest);
 
-        httpServer.setExecutor(null);
-        httpServer.start();
+            httpServer.setExecutor(null);
+            httpServer.start();
+        }
+
+        URL url = new URL("https://api.ipify.org");
+        BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
+        publicHost = in.readLine();
+        in.close();
 
         refreshTexturePack();
     }
@@ -66,7 +77,7 @@ public class PackWebServer extends JavaPlugin {
         ResourcePackInfo info;
         try {
             String sha1Hex = sha1Hex(packZipPath);
-            URI uri = URI.create("http://" + publicHost + ":" + port + "/" + packFileName);
+            URI uri = URI.create("http://" + MultiItemDisplayEngine.config.getString("overrides.pack.host", publicHost) + ":" + defPort + "/" + packFileName);
 
             info = ResourcePackInfo.resourcePackInfo(packUuid, uri, sha1Hex);
         } catch (Exception e) {
@@ -97,7 +108,7 @@ public class PackWebServer extends JavaPlugin {
         ResourcePackInfo info;
         try {
             String sha1Hex = sha1Hex(packZipPath);
-            URI uri = URI.create("http://" + publicHost + ":" + port + "/" + packFileName);
+            URI uri = URI.create("http://" + MultiItemDisplayEngine.config.getString("overrides.pack.host", publicHost) + ":" + defPort + "/" + packFileName);
 
             info = ResourcePackInfo.resourcePackInfo(packUuid, uri, sha1Hex);
         } catch (Exception e) {
