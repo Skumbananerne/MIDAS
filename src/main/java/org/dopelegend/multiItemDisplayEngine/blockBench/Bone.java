@@ -2,10 +2,12 @@ package org.dopelegend.multiItemDisplayEngine.blockBench;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.utils.CustomModelData;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
@@ -27,7 +29,7 @@ public class Bone {
 
     private String UUID = "";
     private ItemDisplay itemDisplay;
-    private List<Bone> childrenBones;;
+    private List<Bone> childrenBones;
     private Bone parentBone;
     private String modelName;
 
@@ -82,8 +84,11 @@ public class Bone {
             this.itemDisplay = (ItemDisplay) world.spawnEntity(new Location(world, spawnPosition.x, spawnPosition.y, spawnPosition.z), EntityType.ITEM_DISPLAY);
 
             ItemStack itemDisplayItem = new ItemStack(Material.DIAMOND_BLOCK);
-            //Set Custom Model Data
-            itemDisplayItem = CustomModelData.addCustomModelData("midas:" + modelName + "/" + this.UUID, itemDisplayItem);
+            //Set item model
+            NamespacedKey modelKey = new NamespacedKey("midas",  modelName + "/" + this.UUID);
+            ItemMeta meta = itemDisplayItem.getItemMeta();
+            meta.setItemModel(modelKey);
+            itemDisplayItem.setItemMeta(meta);
             this.itemDisplay.setItemStack(itemDisplayItem);
         }
         for(int i = 0; i < this.childrenBones.size(); i++){

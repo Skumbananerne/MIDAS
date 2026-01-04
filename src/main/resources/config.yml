@@ -4,6 +4,6 @@ overrides:
     # Local = Makes a webserver on the Minecraft server (requires another open port)
     host-type: "local"
     # Default: 25566
-    port:
+    port: 25566
     # Default: Public ip
-    host:
+    host: 83.94.2.3

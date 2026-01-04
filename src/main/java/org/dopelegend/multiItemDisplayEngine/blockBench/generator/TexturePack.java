@@ -128,7 +128,7 @@ public class TexturePack {
      * @param workingDir The root texturepack file
      */
     private static void generateItemsFolder(File workingDir){
-        // Generate pack.mcmeta
+        // Generate the items folder
         try {
             List<Pair<JsonObject, JsonObject>> allBones = getAllBonesWithRootJson();
             for (Pair<JsonObject, JsonObject> boneAndRoot : allBones) {
@@ -483,6 +483,7 @@ public class TexturePack {
      * @return The array with all the bones.
      */
     private static JsonObject[] getAllBones(){
+        //TODO make this use the groups array
         File[] allModels = getAllFiles();
         List<JsonObject> bones = new ArrayList<>();
 
@@ -527,6 +528,7 @@ public class TexturePack {
      * @return The List of pairs with all the bones and root files, pair.left is the bone, and pair.right is the rootJsonObject.
      */
     private static List<Pair<JsonObject, JsonObject>> getAllBonesWithRootJson(){
+        //TODO make this use the groups array
         File[] allModels = getAllFiles();
         List<Pair<JsonObject, JsonObject>> bonesAndRootJson = new ArrayList<>();
         for (File modelFile : allModels) {
@@ -610,7 +612,7 @@ public class TexturePack {
      * @param groupArray The JsonArray 'groups' in the .bbmodel file
      * @return The bone or an empty JsonObject if none was found
      */
-    private static JsonObject getBoneFromUUID(String uuid, JsonArray groupArray){
+    public static JsonObject getBoneFromUUID(String uuid, JsonArray groupArray){
 
         JsonObject targetBone =  new JsonObject();
         // Get bone
@@ -632,10 +634,10 @@ public class TexturePack {
      * Get a bone in the 'outliner' JsonArray from its UUID
      *
      * @param uuid The uuid to search for
-     * @param outlinerArray The JsonArray 'groups' in the .bbmodel file
+     * @param outlinerArray The JsonArray 'outliner' in the .bbmodel file
      * @return The bone or an empty JsonObject if none was found
      */
-    private static JsonObject getOutlinerBoneFromUUID(String uuid, JsonArray outlinerArray){
+    public static JsonObject getOutlinerBoneFromUUID(String uuid, JsonArray outlinerArray){
 
         // Get rootBone
         JsonObject rootBone = outlinerArray.get(0).getAsJsonObject();

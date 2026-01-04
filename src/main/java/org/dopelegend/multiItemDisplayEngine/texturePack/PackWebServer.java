@@ -37,7 +37,7 @@ public class PackWebServer extends JavaPlugin {
 
     public void startHttpServer() throws IOException {
         if(MultiItemDisplayEngine.config.getString("overrides.pack.host-type", "local").equalsIgnoreCase("local")){
-            httpServer = HttpServer.create(new InetSocketAddress("0.0.0.0", defPort), 0);
+            httpServer = HttpServer.create(new InetSocketAddress("0.0.0.0", MultiItemDisplayEngine.config.getInt("overrides.pack.port", defPort)), 0);
 
             httpServer.createContext("/" + packFileName, this::handlePackRequest);
 
@@ -77,10 +77,12 @@ public class PackWebServer extends JavaPlugin {
         ResourcePackInfo info;
         try {
             String sha1Hex = sha1Hex(packZipPath);
-            URI uri = URI.create("http://" + MultiItemDisplayEngine.config.getString("overrides.pack.host", publicHost) + ":" + defPort + "/" + packFileName);
+            URI uri = URI.create("http://" + MultiItemDisplayEngine.config.getString("overrides.pack.host", publicHost) + ":" + MultiItemDisplayEngine.config.getInt("overrides.pack.port", defPort) + "/" + packFileName);
 
             info = ResourcePackInfo.resourcePackInfo(packUuid, uri, sha1Hex);
         } catch (Exception e) {
+            MultiItemDisplayEngine.plugin.getLogger().warning("Failed to give player pack.");
+            MultiItemDisplayEngine.plugin.getLogger().warning(e.getMessage());
             return false;
         }
 
@@ -108,10 +110,11 @@ public class PackWebServer extends JavaPlugin {
         ResourcePackInfo info;
         try {
             String sha1Hex = sha1Hex(packZipPath);
-            URI uri = URI.create("http://" + MultiItemDisplayEngine.config.getString("overrides.pack.host", publicHost) + ":" + defPort + "/" + packFileName);
-
+            URI uri = URI.create("http://" + MultiItemDisplayEngine.config.getString("overrides.pack.host", publicHost) + ":" + MultiItemDisplayEngine.config.getInt("overrides.pack.port", defPort) + "/" + packFileName);
             info = ResourcePackInfo.resourcePackInfo(packUuid, uri, sha1Hex);
         } catch (Exception e) {
+            MultiItemDisplayEngine.plugin.getLogger().warning("Failed to give player pack.");
+            MultiItemDisplayEngine.plugin.getLogger().warning(e.getMessage());
             return false;
         }
 

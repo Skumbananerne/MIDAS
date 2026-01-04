@@ -2,6 +2,7 @@ package org.dopelegend.multiItemDisplayEngine.blockBench;
 
 import com.google.gson.*;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
+import org.dopelegend.multiItemDisplayEngine.blockBench.generator.TexturePack;
 import org.dopelegend.multiItemDisplayEngine.files.utils.FileGetter;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
@@ -70,9 +71,9 @@ public class FileReader {
         }
 
         //Get rootBone
-
         JsonObject boneObject = modelData.getAsJsonArray("outliner").get(0).getAsJsonObject();
-        return createBone(boneObject, modelData, null);
+        JsonArray groupArray = modelData.get("groups").getAsJsonArray();
+        return createBone(TexturePack.getBoneFromUUID(boneObject.get("uuid").getAsString(), groupArray), modelData, null);
     }
 
 
@@ -85,8 +86,16 @@ public class FileReader {
      * @return Created bone
      */
     static private Bone createBone(JsonObject boneObject, JsonObject modelData, Bone parent){
+        // Get origin array
         JsonArray originArray = boneObject.getAsJsonArray("origin");
-        JsonArray childrenArray = boneObject.getAsJsonArray("children");
+
+        // Get outlinerBone
+        String boneUUID = boneObject.get("uuid").getAsString();
+
+        JsonArray outlinerArray = modelData.getAsJsonArray("outliner");
+        JsonObject outlinerBone = TexturePack.getOutlinerBoneFromUUID(boneUUID, outlinerArray);
+
+        JsonArray childrenArray = outlinerBone.getAsJsonArray("children");
 
         //Finds the uuid of the first element in the children of the bone, or null if it has none
         String uuid = null;
@@ -100,33 +109,39 @@ public class FileReader {
 
         Bone bone;
         if(uuid == null){
+            // Bone does not have an element
             bone = new Bone(
                     new Triple(originArray.get(0).getAsDouble(), originArray.get(1).getAsDouble(),originArray.get(2).getAsDouble()),
                     parent,
                     new ArrayList<>(),
-                    boneObject.get("uuid").getAsString()
+                    boneUUID
             );
-        }else{
+        }
+        else {
+            // Bone have an element
             JsonArray elementPos = Objects.requireNonNull(getElement(modelData.get("elements").getAsJsonArray(), uuid)).getAsJsonArray("from");
             bone = new Bone(
                     new Triple(originArray.get(0).getAsDouble(), originArray.get(1).getAsDouble(),originArray.get(2).getAsDouble()),
                     new Triple(elementPos.get(0).getAsDouble(), elementPos.get(1).getAsDouble(), elementPos.get(2).getAsDouble()),
                     parent,
                     new ArrayList<>(),
-                    boneObject.get("uuid").getAsString(),
+                    boneUUID,
                     modelData.get("name").getAsString()
             );
         }
 
 
         //Create children bones
-
         for(int i = 0; i < childrenArray.size(); i++){
             Object object = childrenArray.get(i);
             if(!(object instanceof JsonObject)){
                 continue;
             }
-            bone.addChildrenBone(createBone(childrenArray.get(i).getAsJsonObject(), modelData, bone));
+            JsonObject childOutlinerBone = childrenArray.get(i).getAsJsonObject();
+            String childBoneUUID = childOutlinerBone.get("uuid").getAsString();
+            JsonObject childBone = TexturePack.getBoneFromUUID(childBoneUUID, outlinerArray);
+            if (childBone.isEmpty()) continue;
+            bone.addChildrenBone(createBone(childBone, modelData, bone));
         }
 
         return bone;
