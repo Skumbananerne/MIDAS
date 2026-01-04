@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
@@ -25,7 +26,7 @@ import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.UUID;
 
-public class PackWebServer extends JavaPlugin {
+public class PackWebServer {
     private HttpServer httpServer;
     private Path packZipPath = FileGetter.getTexturePackFolder().toPath().resolve("pack.zip");
 
@@ -33,22 +34,35 @@ public class PackWebServer extends JavaPlugin {
     private final String packFileName = "pack.zip";
     private String publicHost;
 
-    private final UUID packUuid = UUID.fromString("11111111-2222-3333-4444-555555555555");
+    private volatile byte[] packByte = null;
 
     public void startHttpServer() throws IOException {
         if(MultiItemDisplayEngine.config.getString("overrides.pack.host-type", "local").equalsIgnoreCase("local")){
-            httpServer = HttpServer.create(new InetSocketAddress("0.0.0.0", MultiItemDisplayEngine.config.getInt("overrides.pack.port", defPort)), 0);
+            Bukkit.getScheduler().runTaskAsynchronously(MultiItemDisplayEngine.plugin, () -> {
+                try {
+                    httpServer = HttpServer.create(new InetSocketAddress("0.0.0.0", MultiItemDisplayEngine.config.getInt("overrides.pack.port", defPort)), 0);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
 
-            httpServer.createContext("/" + packFileName, this::handlePackRequest);
+                httpServer.createContext("/" + packFileName, this::handlePackRequest);
 
-            httpServer.setExecutor(null);
-            httpServer.start();
+                httpServer.setExecutor(null);
+                httpServer.start();
+            });
         }
 
-        URL url = new URL("https://api.ipify.org");
-        BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
-        publicHost = in.readLine();
-        in.close();
+        Bukkit.getScheduler().runTaskAsynchronously(MultiItemDisplayEngine.plugin, () -> {
+            try {
+                URL url = new URL("https://api.ipify.org");
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
+                publicHost = in.readLine();
+                in.close();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
 
         refreshTexturePack();
     }
@@ -60,43 +74,47 @@ public class PackWebServer extends JavaPlugin {
             return;
         }
 
-        byte[] bytes = Files.readAllBytes(packZipPath);
+        if (packByte == null || packByte.length == 0) {
+            packByte = Files.readAllBytes(packZipPath);
+        }
 
         Headers h = ex.getResponseHeaders();
         h.set("Content-Type", "application/zip");
         h.set("Content-Disposition", "attachment; filename=\"" + packFileName + "\"");
         h.set("Cache-Control", "no-cache, no-store, must-revalidate");
 
-        ex.sendResponseHeaders(200, bytes.length);
+        ex.sendResponseHeaders(200, packByte.length);
         try (OutputStream os = ex.getResponseBody()) {
-            os.write(bytes);
+            os.write(packByte);
         }
     }
 
-    public boolean refreshTexturePack(){
-        ResourcePackInfo info;
-        try {
-            String sha1Hex = sha1Hex(packZipPath);
-            URI uri = URI.create("http://" + MultiItemDisplayEngine.config.getString("overrides.pack.host", publicHost) + ":" + MultiItemDisplayEngine.config.getInt("overrides.pack.port", defPort) + "/" + packFileName);
-
-            info = ResourcePackInfo.resourcePackInfo(packUuid, uri, sha1Hex);
-        } catch (Exception e) {
-            MultiItemDisplayEngine.plugin.getLogger().warning("Failed to give player pack.");
-            MultiItemDisplayEngine.plugin.getLogger().warning(e.getMessage());
-            return false;
-        }
-
-        ResourcePackRequest request = ResourcePackRequest.resourcePackRequest()
-                .packs(info)
-                .prompt(Component.text("This server uses a resource pack. Please accept to play."))
-                .required(true)
-                .build();
-
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            p.sendResourcePacks(request);
-        }
-
-        return true;
+    public void refreshTexturePack(){
+        return;
+//        Bukkit.getScheduler().runTaskAsynchronously(MultiItemDisplayEngine.plugin, () -> {
+//            ResourcePackInfo info;
+//            try {
+//                String sha1Hex = sha1Hex(packZipPath);
+//                URI uri = URI.create("http://" + MultiItemDisplayEngine.config.getString("overrides.pack.host", publicHost) + ":" + MultiItemDisplayEngine.config.getInt("overrides.pack.port", defPort) + "/" + packFileName);
+//
+//                info = ResourcePackInfo.resourcePackInfo(UUID.randomUUID(), uri, sha1Hex);
+//            } catch (Exception e) {
+//                MultiItemDisplayEngine.plugin.getLogger().warning("Failed to give player pack.");
+//                MultiItemDisplayEngine.plugin.getLogger().warning(e.getMessage());
+//                return;
+//            }
+//
+//            ResourcePackRequest request = ResourcePackRequest.resourcePackRequest()
+//                    .packs(info)
+//                    .prompt(Component.text("This server uses a resource pack. Please accept to play."))
+//                    .required(true)
+//                    .replace(true)
+//                    .build();
+//
+//            for (Player p : Bukkit.getOnlinePlayers()) {
+//                p.sendResourcePacks(request);
+//            }
+//        });
     }
 
     private static String sha1Hex(Path file) throws Exception {
@@ -106,25 +124,26 @@ public class PackWebServer extends JavaPlugin {
         return HexFormat.of().formatHex(digest);
     }
 
-    public boolean givePlayerPack(Player player){
+    public void givePlayerPack(Player player){
         ResourcePackInfo info;
         try {
             String sha1Hex = sha1Hex(packZipPath);
-            URI uri = URI.create("http://" + MultiItemDisplayEngine.config.getString("overrides.pack.host", publicHost) + ":" + MultiItemDisplayEngine.config.getInt("overrides.pack.port", defPort) + "/" + packFileName);
-            info = ResourcePackInfo.resourcePackInfo(packUuid, uri, sha1Hex);
+            MultiItemDisplayEngine.plugin.getLogger().warning(sha1Hex);
+            //URI uri = URI.create("http://" + MultiItemDisplayEngine.config.getString("overrides.pack.host", publicHost) + ":" + MultiItemDisplayEngine.config.getInt("overrides.pack.port", defPort) + "/" + packFileName);
+            URI uri = URI.create("https://pack.miguel.nu/pack.zip");
+            info = ResourcePackInfo.resourcePackInfo(UUID.randomUUID(), uri, sha1Hex);
         } catch (Exception e) {
             MultiItemDisplayEngine.plugin.getLogger().warning("Failed to give player pack.");
             MultiItemDisplayEngine.plugin.getLogger().warning(e.getMessage());
-            return false;
+            return;
         }
 
         ResourcePackRequest request = ResourcePackRequest.resourcePackRequest()
                 .packs(info)
                 .prompt(Component.text("This server uses a resource pack. Please accept to play."))
                 .required(true)
+                .replace(true)
                 .build();
         player.sendResourcePacks(request);
-
-        return true;
     }
 }

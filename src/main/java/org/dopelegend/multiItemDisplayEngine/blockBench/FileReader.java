@@ -95,14 +95,16 @@ public class FileReader {
         JsonArray outlinerArray = modelData.getAsJsonArray("outliner");
         JsonObject outlinerBone = TexturePack.getOutlinerBoneFromUUID(boneUUID, outlinerArray);
 
+        JsonArray groupArray = modelData.getAsJsonArray("groups");
+
         JsonArray childrenArray = outlinerBone.getAsJsonArray("children");
 
         //Finds the uuid of the first element in the children of the bone, or null if it has none
         String uuid = null;
-        for(int i = 0; i < childrenArray.size(); i++){
-            Object object = childrenArray.get(i);
-            if(!(object instanceof JsonObject)){
-                uuid = childrenArray.get(i).getAsString();
+        for(Object object : childrenArray){
+            if(object instanceof JsonPrimitive jsonPrimitive) {
+                if (!jsonPrimitive.isString()) continue;
+                uuid = jsonPrimitive.getAsString();
                 break;
             }
         }
@@ -119,10 +121,13 @@ public class FileReader {
         }
         else {
             // Bone have an element
-            JsonArray elementPos = Objects.requireNonNull(getElement(modelData.get("elements").getAsJsonArray(), uuid)).getAsJsonArray("from");
+            // TODO make this offset work to make it bigger than 3*3*3 blocks
+            // JsonArray elementPos = Objects.requireNonNull(getElement(modelData.get("elements").getAsJsonArray(), uuid)).getAsJsonArray("from");
             bone = new Bone(
                     new Triple(originArray.get(0).getAsDouble(), originArray.get(1).getAsDouble(),originArray.get(2).getAsDouble()),
-                    new Triple(elementPos.get(0).getAsDouble(), elementPos.get(1).getAsDouble(), elementPos.get(2).getAsDouble()),
+                    // TODO make this offset work to make it bigger than 3*3*3 blocks
+                    //new Triple(elementPos.get(0).getAsDouble(), elementPos.get(1).getAsDouble(), elementPos.get(2).getAsDouble()),
+                    new Triple(0, 0, 0),
                     parent,
                     new ArrayList<>(),
                     boneUUID,
@@ -131,16 +136,16 @@ public class FileReader {
         }
 
 
-        //Create children bones
-        for(int i = 0; i < childrenArray.size(); i++){
-            Object object = childrenArray.get(i);
-            if(!(object instanceof JsonObject)){
-                continue;
-            }
-            JsonObject childOutlinerBone = childrenArray.get(i).getAsJsonObject();
+        //Loop through outliner bones
+        for(JsonElement element : childrenArray){
+            if(!(element instanceof JsonObject childOutlinerBone)) continue;
+
+            // Get child bone in 'groups'
             String childBoneUUID = childOutlinerBone.get("uuid").getAsString();
-            JsonObject childBone = TexturePack.getBoneFromUUID(childBoneUUID, outlinerArray);
+            JsonObject childBone = TexturePack.getBoneFromUUID(childBoneUUID, groupArray);
             if (childBone.isEmpty()) continue;
+
+            // Add child bone as a child
             bone.addChildrenBone(createBone(childBone, modelData, bone));
         }
 

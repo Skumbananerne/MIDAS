@@ -74,13 +74,21 @@ public class Bone {
 
     public void spawn(Triple originPosition, World world){
         if(this.hasElement && this.itemDisplay == null){
+
+            // Probably need to do something like this when we want bigger models than 3*3*3 blocks
+//            Triple spawnPosition = new Triple(
+//                    originPosition.x - (this.offset.x / 16),
+//                    originPosition.y + (this.offset.y / 16),
+//                    originPosition.z - (this.offset.z / 16)
+//            );
+
             Triple spawnPosition = new Triple(
-                    originPosition.x - (this.offset.x / 16),
-                    originPosition.y + (this.offset.y / 16),
-                    originPosition.z - (this.offset.z / 16)
+                    originPosition.x,
+                    originPosition.y,
+                    originPosition.z
             );
 
-            //Spawn item display
+            //spawn item display
             this.itemDisplay = (ItemDisplay) world.spawnEntity(new Location(world, spawnPosition.x, spawnPosition.y, spawnPosition.z), EntityType.ITEM_DISPLAY);
 
             ItemStack itemDisplayItem = new ItemStack(Material.DIAMOND_BLOCK);
@@ -112,9 +120,38 @@ public class Bone {
         this.UUID = UUID;
     }
 
+    public Triple getOffset() {
+        return offset;
+    }
+
+    public ItemDisplay getItemDisplay() {return this.itemDisplay;}
+
     public List<Bone> getChildrenBones() {
         return childrenBones;
     }
+
+    /**
+     *
+     * Gets all the children bones of this bone and optionally a reference to itself.
+     *
+     * @param includeSelf A boolean where true means that the bone this method is called on will be included in the returned list, false means it isn't.
+     * @return The list of bones either with or without this bone itself depending on the includeSelf parameter, or an empty list if there's no results.
+     */
+    public List<Bone> getAllChildrenBones(Boolean includeSelf) {
+        List<Bone> childrenBones = new ArrayList<>();
+
+        if(includeSelf) childrenBones.add(this);
+
+        for(Bone child : this.childrenBones){
+            childrenBones.addAll(child.getAllChildrenBones(includeSelf));
+        }
+
+        return childrenBones;
+    }
+
+    public boolean hasElement() {return this.hasElement;}
+
+    public boolean hasChildren() {return !this.childrenBones.isEmpty();}
 
     public void setChildrenBones(List<Bone> childrenBones) {
         this.childrenBones = childrenBones;
