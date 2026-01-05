@@ -1,9 +1,14 @@
 package org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
+import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
 import org.dopelegend.multiItemDisplayEngine.blockBench.FileReader;
+import org.dopelegend.multiItemDisplayEngine.blockBench.generator.Animation;
 import org.dopelegend.multiItemDisplayEngine.movement.SmoothTeleport;
 import org.dopelegend.multiItemDisplayEngine.movement.Teleport;
 import org.dopelegend.multiItemDisplayEngine.rotation.Rotate;
@@ -11,6 +16,9 @@ import org.dopelegend.multiItemDisplayEngine.rotation.RotateSmooth;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -25,9 +33,15 @@ public class ItemDisplayGroup {
     private double yaw;
     private double pitch;
     private double roll;
+    /**
+     * All the animations this ItemDisplayGroup has as a map where the key is a string name of the animation and the value is an Animation class.
+     */
+    private Map<String, Animation>  animations;
 
     //Constructor
     /**
+     *
+     * This constructor makes static itemDisplayGroups, as there's no animation references
      *
      * @param pivotPoint The location of the center which the itemDisplayGroup should be rotated around.
      * @param rootBone The bone at the top of the bone hiearchy, this is obviously also the bone with no parent and all other bones as children/grandchildren or any other generation under it.
@@ -43,6 +57,7 @@ public class ItemDisplayGroup {
         this.pitch = 0;
         this.roll = 0;
         this.groupUUID = UUID.randomUUID().toString();
+        this.animations = new HashMap<String, Animation>();
     }
 
     /**
@@ -52,6 +67,7 @@ public class ItemDisplayGroup {
      *
      */
     public ItemDisplayGroup(Location pivotPoint, String modelName) {
+        // TODO make a map with predefined ItemDisplayGroupBlueprints and check against that before recomputing everything.
         if (pivotPoint == null || modelName == null || modelName.isEmpty()) {
             throw new IllegalArgumentException("Display groups cannot be intialized with null or empty values.");
         }
@@ -61,11 +77,40 @@ public class ItemDisplayGroup {
         if(file == null) {
             throw new IllegalArgumentException("Display group got intialized with a model that doesn't exist.");
         }
-        this.rootBone = FileReader.getRootBone(file);
+        Bone rootBone = FileReader.getRootBone(file);
+        if (rootBone == null) {
+            this.rootBone = new Bone(new Triple(0, 0,0), null, new ArrayList<>(), UUID.randomUUID().toString());
+            MultiItemDisplayEngine.plugin.getLogger().severe("Failed to make rootBone (used empty RootBone instead) for ItemDisplayGroup using model: " + modelName);
+            return;
+        }
+
+        this.rootBone = rootBone;
         this.yaw = 0;
         this.pitch = 0;
         this.roll = 0;
         this.groupUUID = UUID.randomUUID().toString();
+
+        JsonObject rootJson = FileReader.getRootJsonObject(file);
+        if (rootJson == null) {
+            this.animations = new HashMap<>();
+            MultiItemDisplayEngine.plugin.getLogger().severe("Failed to make animations (used empty animation list instead) for ItemDisplayGroup using model: " + modelName);
+            return;
+        }
+
+        Map<String, Animation> animations = new HashMap<>();
+
+        JsonArray animationsArray =  rootJson.getAsJsonArray("animations");
+        if (animationsArray == null){
+            this.animations = new HashMap<>();
+            return;
+        }
+        for (JsonElement element : animationsArray) {
+            if (element instanceof JsonObject animation) {
+                animations.put(animation.get("name").getAsString(), new Animation(animation, rootBone));
+            }
+        }
+
+        this.animations = animations;
     }
 
     /**
@@ -76,6 +121,20 @@ public class ItemDisplayGroup {
      */
     public boolean spawn(){
         rootBone.spawn(new Triple(this.pivotPoint.getX(), this.pivotPoint.getY(), this.pivotPoint.getZ()), this.pivotPoint.getWorld());
+        return true;
+    }
+
+    /**
+     *
+     * Makes this itemDisplayGroup play an animation with the given name.
+     *
+     * @param animationName The name of the animation, this is the same as it's called in BlockBench.
+     * @return False if the animation couldn't be found, true if it could.
+     */
+    public boolean playAnimation(String animationName){
+        if (!this.animations.containsKey(animationName)){return false;}
+        // TODO make this work
+
         return true;
     }
 

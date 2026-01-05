@@ -34,7 +34,7 @@ public class ModelCommand {
             return 0;
         }
         TexturePack.generateTexturePack();
-        MultiItemDisplayEngine.packWebServer.refreshTexturePack();
+        MultiItemDisplayEngine.packWebServer.reloadPackSnapshot();
         return 1;
     }
 }

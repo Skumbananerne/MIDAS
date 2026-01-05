@@ -34,9 +34,27 @@ public class FileReader {
      * Gets the root bone from a model file, this needs to be a .bbmodel file, and won't work probably if the model has multiple root bones.
      *
      * @param modelFile The file to get the root bone from
-     * @return The root bone
+     * @return The root bone or null if it couldn't be acquired
      */
     public static Bone getRootBone(File modelFile) {
+
+        JsonObject modelData = getRootJsonObject(modelFile);
+        if(modelData == null) return null;
+
+        //Get rootBone
+        JsonObject boneObject = modelData.getAsJsonArray("outliner").get(0).getAsJsonObject();
+        JsonArray groupArray = modelData.get("groups").getAsJsonArray();
+        return createBone(TexturePack.getBoneFromUUID(boneObject.get("uuid").getAsString(), groupArray), modelData, null);
+    }
+
+    /**
+     *
+     * Gets the root JsonObject in a certain file. This file needs to be a .bbmodel file
+     *
+     * @param modelFile The file to get the root JsonObject from
+     * @return The root JsonObject or null if it couldn't be acquired for one reason or another
+     */
+    public static JsonObject getRootJsonObject(File modelFile) {
         //File doesn't exist
         if(!modelFile.exists()){
             MultiItemDisplayEngine.plugin.getLogger().warning("The model file could not be found: " + modelFile.getPath());
@@ -69,13 +87,8 @@ public class FileReader {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-
-        //Get rootBone
-        JsonObject boneObject = modelData.getAsJsonArray("outliner").get(0).getAsJsonObject();
-        JsonArray groupArray = modelData.get("groups").getAsJsonArray();
-        return createBone(TexturePack.getBoneFromUUID(boneObject.get("uuid").getAsString(), groupArray), modelData, null);
+        return modelData;
     }
-
 
     /**
      *
