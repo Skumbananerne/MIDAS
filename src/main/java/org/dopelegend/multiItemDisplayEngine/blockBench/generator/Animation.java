@@ -69,6 +69,7 @@ public class Animation {
      * @param animation The animation JsonObject, with the animation to read from in the .bbmodel file
      */
     public Animation(JsonObject animation, Bone rootBone) {
+
         // Get and set uuid
         this.uuid = animation.get("uuid").getAsString();
 
@@ -78,6 +79,11 @@ public class Animation {
 
         // Set name
         this.name = animation.get("name").getAsString();
+
+        if (!animation.has("animators")) {
+            this.keyFrames = new HashMap<>();
+            return;
+        }
 
         // Get the JsonObject containing all keyFrames
         JsonObject animators = animation.getAsJsonObject("animators");

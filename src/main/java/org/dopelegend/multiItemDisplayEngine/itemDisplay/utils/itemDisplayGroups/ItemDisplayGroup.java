@@ -134,7 +134,7 @@ public class ItemDisplayGroup {
     public boolean playAnimation(String animationName){
         if (!this.animations.containsKey(animationName)){return false;}
         // TODO make this work
-
+        
         return true;
     }
 

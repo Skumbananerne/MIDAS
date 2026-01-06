@@ -8,9 +8,11 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.util.Transformation;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.utils.CustomModelData;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,18 +59,16 @@ public class Bone {
      * When this constructor is used we assume the bone have an element.
      *
      * @param relPivot The origin represented by 3 doubles in the form of a triple.
-     * @param offset The origin represented by 3 doubles in the form of a triple.
      * @param parentBone Parent of this bone
      * @param childrenBones All children direct child bones from this bone
      * @param UUID UUID of this bone
      */
-    public Bone(Triple relPivot, Triple offset, Bone parentBone, List<Bone> childrenBones, String UUID, String modelName) {
+    public Bone(Triple relPivot, Bone parentBone, List<Bone> childrenBones, String UUID, String modelName) {
         this.relPivot = relPivot;
         this.UUID = UUID;
         this.childrenBones = childrenBones;
         this.parentBone = parentBone;
         this.hasElement = true;
-        this.offset = offset;
         this.modelName = modelName;
     }
 
@@ -83,9 +83,9 @@ public class Bone {
 //            );
 
             Triple spawnPosition = new Triple(
-                    originPosition.x,
-                    originPosition.y,
-                    originPosition.z
+                    originPosition.x - (relPivot.x / 16),
+                    originPosition.y - (relPivot.y / 16),
+                    originPosition.z - (relPivot.z / 16)
             );
 
             //spawn item display
@@ -98,6 +98,25 @@ public class Bone {
             meta.setItemModel(modelKey);
             itemDisplayItem.setItemMeta(meta);
             this.itemDisplay.setItemStack(itemDisplayItem);
+
+            // Spawn pivot diamond BLOCK
+            ItemDisplay pivotPointDisplay = (ItemDisplay) world.spawnEntity(new Location(world, spawnPosition.x, spawnPosition.y, spawnPosition.z), EntityType.ITEM_DISPLAY);
+            Transformation oldTransform = pivotPointDisplay.getTransformation();
+            Transformation newTransform = new Transformation(
+                    oldTransform.getTranslation(),
+                    oldTransform.getLeftRotation(),
+                    new Vector3f(0.1f, 0.1f, 0.1f),
+                    oldTransform.getRightRotation()
+            );
+            pivotPointDisplay.setTransformation(newTransform);
+            ItemStack diamondBlock;
+            if (this.parentBone == null) {
+                diamondBlock = new ItemStack(Material.NETHERITE_BLOCK);
+            }
+            else {
+                diamondBlock = new ItemStack(Material.DIAMOND_BLOCK);
+            }
+            pivotPointDisplay.setItemStack(diamondBlock);
         }
         for(int i = 0; i < this.childrenBones.size(); i++){
             this.childrenBones.get(i).spawn(originPosition, world);

@@ -1,6 +1,8 @@
 package org.dopelegend.multiItemDisplayEngine.commands;
 
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -9,6 +11,9 @@ import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.generator.TexturePack;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
+
+import java.io.File;
+import java.util.concurrent.CompletableFuture;
 
 public class ModelCommand {
     public static int spawnModelByNameCommand(CommandContext<CommandSourceStack> ctx) {
@@ -19,12 +24,7 @@ public class ModelCommand {
 
         ItemDisplayGroup itemDisplayGroup = new ItemDisplayGroup(new Location(player.getWorld(), 0.5, 100.5 ,0.5), ctx.getArgument("model name", String.class));
         itemDisplayGroup.spawn();
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                itemDisplayGroup.addRotationSmooth(new Triple(1, 1, 0), 2);
-            }
-        }.runTaskTimer(MultiItemDisplayEngine.plugin, 20, 2);
+        //itemDisplayGroup.addRotation(new Triple(0, 180, 0));
         return 1;
     }
 
@@ -36,5 +36,22 @@ public class ModelCommand {
         TexturePack.generateTexturePack();
         MultiItemDisplayEngine.packWebServer.reloadPackSnapshot();
         return 1;
+    }
+
+    public static CompletableFuture<Suggestions> suggestModels(
+            CommandContext<CommandSourceStack> context,
+            SuggestionsBuilder builder
+    ) {
+        String remaining = builder.getRemaining().toLowerCase();
+
+        for (File model : TexturePack.getAllFiles()) {
+            String fileName = model.getName();
+            fileName = fileName.split("\\.")[0];
+            if (fileName.startsWith(remaining)) {
+                builder.suggest(fileName);
+            }
+        }
+
+        return builder.buildFuture();
     }
 }

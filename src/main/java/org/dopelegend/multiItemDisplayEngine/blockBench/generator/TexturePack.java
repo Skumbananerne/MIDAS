@@ -7,6 +7,7 @@ import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.files.utils.FileGetter;
 import org.dopelegend.multiItemDisplayEngine.files.utils.FileUtil;
 import org.dopelegend.multiItemDisplayEngine.files.utils.Zip;
+import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -17,6 +18,9 @@ import java.util.*;
 import java.util.zip.ZipEntry;
 
 public class TexturePack {
+
+    final public static int RES_SIZE = 16;
+
     private static File[] allModels = null;
     /**
      *
@@ -188,7 +192,7 @@ public class TexturePack {
         if (!itemModelsFolder.exists()) {
             itemModelsFolder.mkdirs();
         }
-        //Loop through all bones (one bone = one json file)
+        //Loop through all bones
         for (Pair<JsonObject, JsonObject> boneAndJsonRootPair : allBones) {
             List<JsonObject> bbFileElements = getAllElementsFromBone(boneAndJsonRootPair.right(), boneAndJsonRootPair.left());
             if(bbFileElements.isEmpty()){
@@ -250,10 +254,10 @@ public class TexturePack {
                     if(knownIds.contains(id)) continue;
 
                     // loop all textures
-                    for (JsonObject texture : textures){
-                        if(texture.get("id").getAsInt() == id){
+                    for(int index = 0; index < textures.length; index++){
+                        if(index == id){
                             // add texture to texturesObject and known ids
-                            texturesObject.addProperty(String.valueOf(id), "midas:item/" + boneAndJsonRootPair.right().get("name").getAsString() + "/" + texture.get("uuid").getAsString());
+                            texturesObject.addProperty(String.valueOf(id), "midas:item/" + boneAndJsonRootPair.right().get("name").getAsString() + "/" + textures[index].get("uuid").getAsString());
                             knownIds.add(id);
                         }
                     }
@@ -263,10 +267,6 @@ public class TexturePack {
 
             // Make elements Array
             JsonArray elements = new JsonArray();
-
-            double fromX = bbFileElements.getFirst().get("from").getAsJsonArray().get(0).getAsDouble();
-            double fromY = bbFileElements.getFirst().get("from").getAsJsonArray().get(1).getAsDouble();
-            double fromZ = bbFileElements.getFirst().get("from").getAsJsonArray().get(2).getAsDouble();
 
             //Loop through all elements in bone
             for (JsonObject bbElement : bbFileElements) {
@@ -282,22 +282,21 @@ public class TexturePack {
                 JsonArray toArray = new JsonArray();
                 JsonArray fromArray = new JsonArray();
 
-                // Probably need to do something like this to get models larger than 3*3*3 blocks
-//                toArray.add(bbElement.get("to").getAsJsonArray().get(0).getAsDouble()-fromX);
-//                toArray.add(bbElement.get("to").getAsJsonArray().get(1).getAsDouble()-fromY);
-//                toArray.add(bbElement.get("to").getAsJsonArray().get(2).getAsDouble()-fromZ);
-//
-//                fromArray.add(bbElement.get("from").getAsJsonArray().get(0).getAsDouble()-fromX);
-//                fromArray.add(bbElement.get("from").getAsJsonArray().get(1).getAsDouble()-fromY);
-//                fromArray.add(bbElement.get("from").getAsJsonArray().get(2).getAsDouble()-fromZ);
+                JsonArray originArray = boneAndJsonRootPair.left().get("origin").getAsJsonArray();
 
-                toArray.add(bbElement.get("to").getAsJsonArray().get(0).getAsDouble());
-                toArray.add(bbElement.get("to").getAsJsonArray().get(1).getAsDouble());
-                toArray.add(bbElement.get("to").getAsJsonArray().get(2).getAsDouble());
+                Triple originPosition = new Triple(
+                        originArray.get(0).getAsDouble(),
+                        originArray.get(1).getAsDouble(),
+                        originArray.get(2).getAsDouble()
+                );
 
-                fromArray.add(bbElement.get("from").getAsJsonArray().get(0).getAsDouble());
-                fromArray.add(bbElement.get("from").getAsJsonArray().get(1).getAsDouble());
-                fromArray.add(bbElement.get("from").getAsJsonArray().get(2).getAsDouble());
+                toArray.add((bbElement.get("to").getAsJsonArray().get(0).getAsDouble() - originPosition.x) + 8);
+                toArray.add((bbElement.get("to").getAsJsonArray().get(1).getAsDouble() - originPosition.y) + 8);
+                toArray.add((bbElement.get("to").getAsJsonArray().get(2).getAsDouble() - originPosition.z) + 8);
+
+                fromArray.add((bbElement.get("from").getAsJsonArray().get(0).getAsDouble() - originPosition.x) + 8);
+                fromArray.add((bbElement.get("from").getAsJsonArray().get(1).getAsDouble() - originPosition.y) + 8);
+                fromArray.add((bbElement.get("from").getAsJsonArray().get(2).getAsDouble() - originPosition.z) + 8);
 
                 //----------------------------------
 
@@ -305,7 +304,6 @@ public class TexturePack {
                 element.add("to", toArray);
 
                 // Rotation
-                // TODO fix this (check both negative and positive rotations maybe, and make sure there's only 1 axis per element)
                 JsonObject rotation = new JsonObject();
                 JsonArray origin = bbElement.get("origin").getAsJsonArray();
                 int rotAngle = 0;
@@ -335,32 +333,28 @@ public class TexturePack {
 
                 for(String direction : directions){
                     JsonObject face = new JsonObject();
-                    int resSize = 16;
                     JsonArray uvArray = bbElement
                             .get("faces").getAsJsonObject()
                             .get(direction).getAsJsonObject()
                             .get("uv").getAsJsonArray();
 
-                    String textureId =  bbElement
+                    int textureId =  bbElement
                             .get("faces").getAsJsonObject()
                             .get(direction).getAsJsonObject()
-                            .get("texture").getAsString();
+                            .get("texture").getAsInt();
 
                     float[] textureUvDim = new float[2];
 
-                    for (JsonObject jsonObject : textures){
-                        if(Objects.equals(jsonObject.get("id").getAsString(), textureId)){
-                            textureUvDim[0] = jsonObject.get("uv_width").getAsFloat();
-                            textureUvDim[1] = jsonObject.get("uv_height").getAsFloat();
-                            break;
-                        }
-                    }
+                    textureUvDim[0] = textures[textureId].get("uv_width").getAsFloat();
+                    textureUvDim[1] = textures[textureId].get("uv_height").getAsFloat();
+
+
                     for (int i = 0; i < uvArray.size(); i++) {
                         JsonElement uv;
                         if(i % 2 == 0){
-                            uv = new JsonPrimitive(uvArray.get(i).getAsFloat()/(textureUvDim[0] / resSize));
+                            uv = new JsonPrimitive(uvArray.get(i).getAsFloat()/(textureUvDim[0] / RES_SIZE));
                         } else {
-                            uv = new JsonPrimitive(uvArray.get(i).getAsFloat()/(textureUvDim[1] / resSize));
+                            uv = new JsonPrimitive(uvArray.get(i).getAsFloat()/(textureUvDim[1] / RES_SIZE));
                         }
                         uvArray.set(i, uv);
                     }
@@ -696,7 +690,8 @@ public class TexturePack {
         for (JsonElement bone : outlinerBone.get("children").getAsJsonArray()){
             if (!(bone instanceof JsonObject boneObject)){continue;}
 
-            return getOutlinerBoneFromBoneAndUUID(uuid, boneObject);
+            JsonObject returnBone = getOutlinerBoneFromBoneAndUUID(uuid, boneObject);
+            if(!returnBone.isEmpty()) return returnBone;
         }
 
         return new JsonObject();

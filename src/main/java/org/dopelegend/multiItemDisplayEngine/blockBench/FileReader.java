@@ -133,14 +133,9 @@ public class FileReader {
             );
         }
         else {
-            // Bone have an element
-            // TODO make this offset work to make it bigger than 3*3*3 blocks
-            // JsonArray elementPos = Objects.requireNonNull(getElement(modelData.get("elements").getAsJsonArray(), uuid)).getAsJsonArray("from");
+            // Bone has an element
             bone = new Bone(
                     new Triple(originArray.get(0).getAsDouble(), originArray.get(1).getAsDouble(),originArray.get(2).getAsDouble()),
-                    // TODO make this offset work to make it bigger than 3*3*3 blocks
-                    //new Triple(elementPos.get(0).getAsDouble(), elementPos.get(1).getAsDouble(), elementPos.get(2).getAsDouble()),
-                    new Triple(0, 0, 0),
                     parent,
                     new ArrayList<>(),
                     boneUUID,
