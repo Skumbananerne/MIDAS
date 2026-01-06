@@ -84,7 +84,7 @@ public class Bone {
 
             Triple spawnPosition = new Triple(
                     originPosition.x - (relPivot.x / 16),
-                    originPosition.y - (relPivot.y / 16),
+                    originPosition.y + (relPivot.y / 16),
                     originPosition.z - (relPivot.z / 16)
             );
 
@@ -105,7 +105,7 @@ public class Bone {
             Transformation newTransform = new Transformation(
                     oldTransform.getTranslation(),
                     oldTransform.getLeftRotation(),
-                    new Vector3f(0.1f, 0.1f, 0.1f),
+                    new Vector3f(0.05f, 0.05f, 0.05f),
                     oldTransform.getRightRotation()
             );
             pivotPointDisplay.setTransformation(newTransform);

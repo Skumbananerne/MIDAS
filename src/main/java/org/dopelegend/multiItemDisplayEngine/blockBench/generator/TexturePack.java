@@ -306,6 +306,13 @@ public class TexturePack {
                 // Rotation
                 JsonObject rotation = new JsonObject();
                 JsonArray origin = bbElement.get("origin").getAsJsonArray();
+
+                JsonArray rotOriginArray = new JsonArray();
+                rotOriginArray.add((origin.get(0).getAsDouble() - originPosition.x) + 8);
+                rotOriginArray.add((origin.get(1).getAsDouble() - originPosition.y) + 8);
+                rotOriginArray.add((origin.get(2).getAsDouble() - originPosition.z) + 8);
+
+
                 int rotAngle = 0;
                 char rotAxis = 'x';
                 if(bbElement.has("rotation")){
@@ -324,7 +331,7 @@ public class TexturePack {
 
                 rotation.addProperty("angle", rotAngle);
                 rotation.addProperty("axis", rotAxis);
-                rotation.add("origin", origin);
+                rotation.add("origin", rotOriginArray);
 
                 element.add("rotation", rotation);
 
