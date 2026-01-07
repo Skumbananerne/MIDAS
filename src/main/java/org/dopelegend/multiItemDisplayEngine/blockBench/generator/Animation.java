@@ -149,4 +149,12 @@ public class Animation {
     public String getUuid() {
         return uuid;
     }
+
+    /**
+     * Gets a map of keyframes where the key is the bone that the value applies to
+     * @return list of key frames
+     */
+    public Map<Bone, List<KeyFrame>> getKeyFrames() {
+        return keyFrames;
+    }
 }

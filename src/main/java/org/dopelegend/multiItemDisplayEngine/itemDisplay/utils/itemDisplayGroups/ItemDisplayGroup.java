@@ -5,21 +5,20 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
 import org.dopelegend.multiItemDisplayEngine.blockBench.FileReader;
 import org.dopelegend.multiItemDisplayEngine.blockBench.generator.Animation;
-import org.dopelegend.multiItemDisplayEngine.movement.SmoothTeleport;
+import org.dopelegend.multiItemDisplayEngine.blockBench.generator.KeyFrame;
+import org.dopelegend.multiItemDisplayEngine.movement.TeleportSmooth;
 import org.dopelegend.multiItemDisplayEngine.movement.Teleport;
 import org.dopelegend.multiItemDisplayEngine.rotation.Rotate;
 import org.dopelegend.multiItemDisplayEngine.rotation.RotateSmooth;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * A group of ItemDisplays that are connected, that way you can move and rotate them around a center without their relative position to each other breaking.
@@ -133,7 +132,60 @@ public class ItemDisplayGroup {
      */
     public boolean playAnimation(String animationName){
         if (!this.animations.containsKey(animationName)){return false;}
-        // TODO make this work
+        Animation animation = this.animations.get(animationName);
+        Map<Bone, List<KeyFrame>> keyframes = animation.getKeyFrames();
+
+        int animationDuration = 0;
+
+        for(Bone bone: keyframes.keySet()){
+            int timestamp = Math.round(keyframes.get(bone).getLast().getTimeStamp() * 20);
+            if(timestamp > animationDuration) animationDuration = timestamp;
+        }
+        for (Bone bone : keyframes.keySet()) {
+            List<KeyFrame> keyFrames = keyframes.get(bone);
+
+            final int[] duration = {0};
+
+            new BukkitRunnable(){
+                int i = 0;
+                int currentDuration = 0;
+                boolean stop;
+                @Override
+                public void run() {
+                    if(stop){
+                        cancel();
+                        //TODO Reset to default state if not loop
+                        return;
+                    }
+                    if (i < keyFrames.size()) {
+                        KeyFrame keyFrame = keyFrames.get(i);
+                        if (i < keyFrames.size() - 1) {
+                            duration[0] = Math.round((keyFrames.get(i + 1).getTimeStamp() - keyFrame.getTimeStamp()) * 20);
+                        } else {
+                            duration[0] = 0;
+                        }
+
+                        switch (keyFrame.getType()) {
+                            case "rotation":
+                                RotateSmooth.SetBoneRotationWithChildrenSmooth(bone, keyFrame.getXyz(), duration[0]);
+                                break;
+                            case "position":
+                                //TeleportSmooth.
+                                break;
+                            case "scale":
+                                //TODO SCALE
+                                break;
+                        }
+                        currentDuration += duration[0];
+                        i++;
+                    } else {
+                        duration[0] -= currentDuration;
+                        stop = true;
+                    }
+
+                }
+            }.runTaskTimer(MultiItemDisplayEngine.plugin, 0L, duration[0]);
+        }
         
         return true;
     }
@@ -166,7 +218,7 @@ public class ItemDisplayGroup {
      * @param teleportDuration How long the teleport should last (how long the ItemDisplayGroup takes to get from start loc to end loc.)
      */
     public void teleportSmooth(Location location, int teleportDuration){
-        SmoothTeleport.TeleportItemDisplayGroupSmooth(this, location, teleportDuration);
+        TeleportSmooth.TeleportItemDisplayGroupSmooth(this, location, teleportDuration);
     }
 
     /**
@@ -177,7 +229,7 @@ public class ItemDisplayGroup {
      * @param teleportDuration How long the teleport should last (how long the ItemDisplayGroup takes to get from start loc to end loc.)
      */
     public void teleportRelativeSmooth(Triple relativeCoordinates, int teleportDuration){
-        SmoothTeleport.TeleportItemDisplayGroupRelativeSmooth(this, relativeCoordinates, teleportDuration);
+        TeleportSmooth.TeleportItemDisplayGroupRelativeSmooth(this, relativeCoordinates, teleportDuration);
     }
 
     /**
@@ -267,34 +319,4 @@ public class ItemDisplayGroup {
     }
 
     public Bone getRootBone() {return this.rootBone;}
-
-
-
-//    public void AddRotation2D(double yaw, int ticks) {
-//        for (ItemDisplay itemDisplay : itemDisplayList) {
-//            itemDisplay.setTeleportDuration(ticks);
-//            itemDisplay.teleport(Rotate2D.AddRotation(yaw, this.centerOfRotation, itemDisplay.getLocation().clone()));
-//        }
-//    }
-//
-//    public void SetRotation2D(double yaw, int ticks) {
-//        for (ItemDisplay itemDisplay : itemDisplayList) {
-//            itemDisplay.setTeleportDuration(ticks);
-//            itemDisplay.teleport(Rotate2D.SetRotation(yaw, this.centerOfRotation, itemDisplay.getLocation().clone(), 0));
-//        }
-//    }
-//
-//    public void SetRotation3D(double yaw, double pitch, double roll, int ticks) {
-//        this.yaw = yaw;
-//        this.pitch = pitch;
-//        this.roll = roll;
-//
-//        for (ItemDisplay itemDisplay : itemDisplayList) {
-//            itemDisplay.setTeleportDuration(ticks);
-//            itemDisplay.teleport(Rotate3D.rotateAroundCenter(itemDisplay, this.centerOfRotation, yaw, pitch, roll));
-//        }
-//    }
-    public void RunAnimation(String animationName, boolean loop, double speed) {
-
-    }
 }

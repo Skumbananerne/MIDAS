@@ -21,8 +21,10 @@ public class Teleport {
         for (Bone bone : rootBone.getAllChildrenBones(true)) {
             if (!bone.hasElement()) continue;
             ItemDisplay itemDisplay = bone.getItemDisplay();
-            Triple boneOffset = bone.getOffset();
-            itemDisplay.teleport(teleportLocation.clone().add(boneOffset.x, boneOffset.y, boneOffset.z));
+            Triple rootOrigin = rootBone.getRelOrigin();
+            Triple relOrigin = bone.getRelOrigin();
+            Triple offset = new Triple(relOrigin.x-rootOrigin.x, relOrigin.y-rootOrigin.y, relOrigin.z-rootOrigin.z);
+            itemDisplay.teleport(teleportLocation.clone().add(offset.x/16, offset.y/16, offset.z/16));
         }
         itemDisplayGroup.setPivotPoint(teleportLocation);
     }
@@ -35,10 +37,39 @@ public class Teleport {
         for (Bone bone : rootBone.getAllChildrenBones(true)) {
             if (!bone.hasElement()) continue;
             ItemDisplay itemDisplay = bone.getItemDisplay();
-            Triple boneOffset = bone.getOffset();
-            itemDisplay.teleport(teleportLocation.clone().add(boneOffset.x, boneOffset.y, boneOffset.z));
+            Triple rootOrigin = rootBone.getRelOrigin();
+            Triple relOrigin = bone.getRelOrigin();
+            Triple offset = new Triple(relOrigin.x-rootOrigin.x, relOrigin.y-rootOrigin.y, relOrigin.z-rootOrigin.z);
+            itemDisplay.teleport(teleportLocation.clone().add(offset.x/16, offset.y/16, offset.z/16));
         }
         itemDisplayGroup.setPivotPoint(teleportLocation);
     }
+
+    /**
+     *
+     * Teleports a single bone without the children.
+     *
+     * @param bone The bone to teleport
+     * @param location The location to teleport the bone to
+     */
+    public static void teleportSingleBone(Bone bone, Location location) {
+        if (!bone.hasElement()) return;
+        ItemDisplay itemDisplay = bone.getItemDisplay();
+        itemDisplay.teleport(location);
+    }
+
+    /**
+     *
+     * Teleports a single bone without the children.
+     *
+     * @param bone The bone to teleport
+     * @param location The location to teleport the bone to
+     */
+    public static void teleportSingleBoneRelative(Bone bone, Location location) {
+        if (!bone.hasElement()) return;
+        ItemDisplay itemDisplay = bone.getItemDisplay();
+        itemDisplay.teleport(location.add(bone.getItemDisplay().getLocation()));
+    }
+
 
 }

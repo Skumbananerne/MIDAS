@@ -9,7 +9,7 @@ public class KeyFrame {
      */
     private final Animation parentAnimation;
     /**
-     * The time stamp of this keyFrame, (when in the animation the bone is at the specified location)
+     * The time stamp of this keyFrame in seconds, (when in the animation the bone is at the specified location)
      */
     private final float timeStamp;
     /**

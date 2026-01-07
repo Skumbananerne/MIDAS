@@ -9,8 +9,6 @@ import org.bukkit.entity.ItemDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Transformation;
-import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
-import org.dopelegend.multiItemDisplayEngine.utils.CustomModelData;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 import org.joml.Vector3f;
 
@@ -26,16 +24,17 @@ import java.util.List;
  */
 public class Bone {
 
-    Triple relPivot;
-    Triple offset;
+    private Triple relPivot;
+    private Triple rotation;
 
     private String UUID = "";
     private ItemDisplay itemDisplay;
     private List<Bone> childrenBones;
     private Bone parentBone;
     private String modelName;
+    private
 
-    boolean hasElement;
+    boolean hasElement = false;
 
     /**
      *
@@ -74,14 +73,6 @@ public class Bone {
 
     public void spawn(Triple originPosition, World world){
         if(this.hasElement && this.itemDisplay == null){
-
-            // Probably need to do something like this when we want bigger models than 3*3*3 blocks
-//            Triple spawnPosition = new Triple(
-//                    originPosition.x - (this.offset.x / 16),
-//                    originPosition.y + (this.offset.y / 16),
-//                    originPosition.z - (this.offset.z / 16)
-//            );
-
             Triple spawnPosition = new Triple(
                     originPosition.x - (relPivot.x / 16),
                     originPosition.y + (relPivot.y / 16),
@@ -139,10 +130,6 @@ public class Bone {
         this.UUID = UUID;
     }
 
-    public Triple getOffset() {
-        return offset;
-    }
-
     public ItemDisplay getItemDisplay() {return this.itemDisplay;}
 
     public List<Bone> getChildrenBones() {
@@ -171,6 +158,14 @@ public class Bone {
     public boolean hasElement() {return this.hasElement;}
 
     public boolean hasChildren() {return !this.childrenBones.isEmpty();}
+
+    public Triple getRotation() {
+        return rotation;
+    }
+
+    public void setRotation(Triple rotation) {
+        this.rotation = rotation;
+    }
 
     public void setChildrenBones(List<Bone> childrenBones) {
         this.childrenBones = childrenBones;

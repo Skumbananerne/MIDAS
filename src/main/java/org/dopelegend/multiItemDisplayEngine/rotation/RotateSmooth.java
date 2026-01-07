@@ -1,8 +1,12 @@
 package org.dopelegend.multiItemDisplayEngine.rotation;
 
+import org.bukkit.Location;
+import org.bukkit.entity.ItemDisplay;
 import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 
 public class RotateSmooth {
 
@@ -41,4 +45,131 @@ public class RotateSmooth {
 
         itemDisplayGroup.addRotation(rotation);
     }
+
+    /**
+     *
+     * Smoothly sets the rotation of a singular bone around an external point.
+     *
+     * @param bone The bone to rotate
+     * @param pivotPoint The external point to rotate around (use SetBoneRotationAroundRelativeSmooth to use relative coordinates)
+     * @param rotation The rotation as an euler angle in degrees (XYZ)
+     * @param interpolationDuration The time it takes the itemDisplayGroup to get from its start rotation to the end rotation
+     */
+    public static void SetBoneRotationAroundSmooth(Bone bone, Location pivotPoint, Triple rotation,  int interpolationDuration) {
+        if (!bone.hasElement()) return;
+
+        rotation.x = rotation.x % 360;
+        rotation.y = rotation.y % 360;
+        rotation.z = rotation.z % 360;
+
+        ItemDisplay itemDisplay = bone.getItemDisplay();
+
+        itemDisplay.setInterpolationDelay(0);
+        itemDisplay.setInterpolationDuration(interpolationDuration);
+
+        Matrix4f currentMatrix = new Matrix4f();
+        Location currentLocation = itemDisplay.getLocation();
+        Vector3f translation = new Vector3f((float) (pivotPoint.x()-currentLocation.x()), (float) (pivotPoint.y()-currentLocation.y()), (float) (pivotPoint.z()-currentLocation.z()));
+        currentMatrix.translate(translation);
+        currentMatrix.rotateXYZ(new Vector3f((float) Math.toRadians(rotation.x), (float) Math.toRadians(rotation.y), (float) Math.toRadians(rotation.z)));
+        currentMatrix.translate(new Vector3f(-translation.x(), -translation.y(), -translation.z()));
+        itemDisplay.setTransformationMatrix(currentMatrix);
+    }
+
+    /**
+     *
+     * Smoothly sets the rotation of a singular bone around an relative point.
+     *
+     * @param bone The bone to rotate
+     * @param relPoint The relative point to rotate around
+     * @param rotation The rotation as an euler angle in degrees (XYZ)
+     * @param interpolationDuration The time it takes the itemDisplayGroup to get from its start rotation to the end rotation
+     */
+    public static void SetBoneRotationAroundRelativeSmooth(Bone bone, Triple relPoint, Triple rotation,  int interpolationDuration) {
+        if (!bone.hasElement()) return;
+
+        rotation.x = rotation.x % 360;
+        rotation.y = rotation.y % 360;
+        rotation.z = rotation.z % 360;
+
+        ItemDisplay itemDisplay = bone.getItemDisplay();
+
+        itemDisplay.setInterpolationDelay(0);
+        itemDisplay.setInterpolationDuration(interpolationDuration);
+
+        Matrix4f currentMatrix = new Matrix4f();
+        Vector3f translation = new Vector3f((float) relPoint.x, (float) relPoint.y, (float) relPoint.z);
+        currentMatrix.translate(translation);
+        currentMatrix.rotateXYZ(new Vector3f((float) Math.toRadians(rotation.x), (float) Math.toRadians(rotation.y), (float) Math.toRadians(rotation.z)));
+        currentMatrix.translate(new Vector3f(-translation.x(), -translation.y(), -translation.z()));
+        itemDisplay.setTransformationMatrix(currentMatrix);
+    }
+
+
+    /**
+     *
+     * Smoothly adds some rotation around an external point to a singular bone.
+     *
+     * @param bone The bone to rotate
+     * @param pivotPoint The external point to rotate around (use AddBoneRotationAroundRelativeSmooth to use relative coordinates)
+     * @param rotation The rotation as an euler angle in degrees (XYZ)
+     * @param interpolationDuration The time it takes the itemDisplayGroup to get from its start rotation to the end rotation
+     */
+    public static void AddBoneRotationAroundSmooth(Bone bone, Location pivotPoint, Triple rotation, int interpolationDuration) {
+        if (!bone.hasElement()) return;
+        Triple oldRotation = bone.getRotation();
+        Triple newRotation = new Triple(oldRotation.x + rotation.x, oldRotation.y + rotation.y, oldRotation.z + rotation.z);
+        SetBoneRotationAroundSmooth(bone, pivotPoint, newRotation, interpolationDuration);
+    }
+
+    /**
+     *
+     * Smoothly adds some rotation around an relative point to a singular bone.
+     *
+     * @param bone The bone to rotate
+     * @param relPoint The relative point to rotate around
+     * @param rotation The rotation as an euler angle in degrees (XYZ)
+     * @param interpolationDuration The time it takes the itemDisplayGroup to get from its start rotation to the end rotation
+     */
+    public static void AddBoneRotationAroundRelativeSmooth(Bone bone, Triple relPoint, Triple rotation, int interpolationDuration) {
+        if (!bone.hasElement()) return;
+        Triple oldRotation = bone.getRotation();
+        Triple newRotation = new Triple(oldRotation.x + rotation.x, oldRotation.y + rotation.y, oldRotation.z + rotation.z);
+        SetBoneRotationAroundRelativeSmooth(bone, relPoint, newRotation, interpolationDuration);
+    }
+
+    /**
+     *
+     * Smoothly sets a bones rotation while also changing the rotation of all children bones it has to match. (this is what happens when rotating bones BlockBench animations)
+     *
+     * @param rootBone The bone you want to rotate.
+     * @param rotation The rotation as an euler angle in degrees (xyz)
+     * @param interpolationDuration The time it takes the itemDisplayGroup to get from its start rotation to the end rotation
+     */
+    public static void SetBoneRotationWithChildrenSmooth(Bone rootBone, Triple rotation, int interpolationDuration) {
+        Triple rootOrigin = rootBone.getRelOrigin();
+        for (Bone bone : rootBone.getAllChildrenBones(true)) {
+            if (!bone.hasElement()) {continue;}
+            ItemDisplay itemDisplay = bone.getItemDisplay();
+            Location currentLocation = itemDisplay.getLocation();
+            Triple translation = new Triple(rootOrigin.x-currentLocation.x(),rootOrigin.y-currentLocation.y(),rootOrigin.z-currentLocation.z());
+            SetBoneRotationAroundRelativeSmooth(bone, translation, rotation, interpolationDuration);
+        }
+    }
+
+    /**
+     *
+     * Smoothly adds a rotation to a bone while also changing the rotation of all children bones it has to match. (this is what happens when rotating bones BlockBench animations)
+     *
+     * @param rootBone The bone you want to rotate.
+     * @param rotation The rotation as an euler angle in degrees (xyz)
+     * @param interpolationDuration The time it takes the itemDisplayGroup to get from its start rotation to the end rotation
+     */
+    public static void AddBoneRotationWithChildrenSmooth(Bone rootBone, Triple rotation, int interpolationDuration) {
+        if (!rootBone.hasElement()) return;
+        Triple oldRotation = rootBone.getRotation();
+        Triple newRotation = new Triple(oldRotation.x + rotation.x, oldRotation.y + rotation.y, oldRotation.z + rotation.z);
+        SetBoneRotationWithChildrenSmooth(rootBone, newRotation, interpolationDuration);
+    }
+
 }

@@ -5,7 +5,7 @@ import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
-public class SmoothTeleport {
+public class TeleportSmooth {
 
     /**
      *
