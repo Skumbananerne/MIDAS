@@ -9,6 +9,8 @@ import org.bukkit.entity.ItemDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Transformation;
+import org.dopelegend.multiItemDisplayEngine.movement.Teleport;
+import org.dopelegend.multiItemDisplayEngine.rotation.Rotate;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 import org.joml.Vector3f;
 
@@ -25,7 +27,14 @@ import java.util.List;
 public class Bone {
 
     private Triple relPivot;
-    private Triple rotation;
+    /**
+     * This is the base rotation of this bone found from the .bbmodel file. This usually isn't what you want to change (look at currentRotation)
+     */
+    private Triple baseRotation;
+    /**
+     * This is the currentRotation of this bone as an euler angle in degrees, note that changing this won't actually change the rotation it will simply update the value.
+     */
+    private Triple currentRotation;
 
     private String UUID = "";
     private ItemDisplay itemDisplay;
@@ -45,12 +54,14 @@ public class Bone {
      * @param childrenBones All children direct child bones from this bone
      * @param UUID UUID of this bone
      */
-    public Bone(Triple relPivot, Bone parentBone, List<Bone> childrenBones, String UUID) {
+    public Bone(Triple relPivot, Triple baseRotation, Bone parentBone, List<Bone> childrenBones, String UUID) {
         this.relPivot = relPivot;
         this.UUID = UUID;
         this.childrenBones = childrenBones;
         this.parentBone = parentBone;
         this.hasElement = false;
+        // TODO change this to actually get it from the bone
+        this.baseRotation = baseRotation;
     }
 
     /**
@@ -62,13 +73,14 @@ public class Bone {
      * @param childrenBones All children direct child bones from this bone
      * @param UUID UUID of this bone
      */
-    public Bone(Triple relPivot, Bone parentBone, List<Bone> childrenBones, String UUID, String modelName) {
+    public Bone(Triple relPivot, Triple baseRotation, Bone parentBone, List<Bone> childrenBones, String UUID, String modelName) {
         this.relPivot = relPivot;
         this.UUID = UUID;
         this.childrenBones = childrenBones;
         this.parentBone = parentBone;
         this.hasElement = true;
         this.modelName = modelName;
+        this.baseRotation = baseRotation;
     }
 
     public void spawn(Triple originPosition, World world){
@@ -89,6 +101,9 @@ public class Bone {
             meta.setItemModel(modelKey);
             itemDisplayItem.setItemMeta(meta);
             this.itemDisplay.setItemStack(itemDisplayItem);
+
+            //Rotate.SetSingleBoneRotation(this, this.baseRotation);
+            resetRotation();
 
             // Spawn pivot diamond BLOCK
             ItemDisplay pivotPointDisplay = (ItemDisplay) world.spawnEntity(new Location(world, spawnPosition.x, spawnPosition.y, spawnPosition.z), EntityType.ITEM_DISPLAY);
@@ -111,6 +126,56 @@ public class Bone {
         }
         for(int i = 0; i < this.childrenBones.size(); i++){
             this.childrenBones.get(i).spawn(originPosition, world);
+        }
+    }
+
+    /***
+     *
+     * Reset the bones location relative to the defined ItemDisplay
+     *
+     * @param display the ItemDisplay to reset relative to
+     */
+    public void resetLocation(ItemDisplay display){
+        Location location = display.getLocation();
+        location.set(
+                location.getX() - (relPivot.x / 16),
+                location.getY() + (relPivot.y / 16),
+                location.getZ() - (relPivot.z / 16)
+        );
+
+        Teleport.teleportSingleBone(this, location);
+        Rotate.SetSingleBoneRotation(this, baseRotation);
+    }
+
+    public void resetRotation(){
+       Triple pivotPoint = new Triple(relPivot.x, relPivot.y, relPivot.z);
+       pivotPoint.divide(16);
+       Rotate.SetBoneRotationAroundRelative(this, new Triple(pivotPoint.x, pivotPoint.y, pivotPoint.z),  baseRotation);
+    }
+
+    /***
+     *
+     * Reset the bones location relative to the defined ItemDisplay with children
+     *
+     * @param display the ItemDisplay to reset relative to
+     * @param withChildren Should the children bones also have their rotation reset
+     */
+    public void resetLocation(ItemDisplay display, boolean withChildren){
+        resetLocation(display);
+        if(withChildren){
+            Location location = display.getLocation();
+            location.set(
+                    location.getX() - (relPivot.x / 16),
+                    location.getY() + (relPivot.y / 16),
+                    location.getZ() - (relPivot.z / 16)
+            );
+
+            Teleport.teleportSingleBone(this, location);
+            Rotate.SetSingleBoneRotation(this, baseRotation);
+
+            for(Bone bone : this.childrenBones){
+                bone.resetLocation(display, withChildren);
+            }
         }
     }
 
@@ -159,12 +224,16 @@ public class Bone {
 
     public boolean hasChildren() {return !this.childrenBones.isEmpty();}
 
-    public Triple getRotation() {
-        return rotation;
+    public Triple getBaseRotation() {
+        return baseRotation;
     }
 
-    public void setRotation(Triple rotation) {
-        this.rotation = rotation;
+    public void setBaseRotation(Triple baseRotation) {
+        this.baseRotation = baseRotation;
+    }
+
+    public Triple getCurrentRotation() {
+        return currentRotation;
     }
 
     public void setChildrenBones(List<Bone> childrenBones) {

@@ -5,17 +5,10 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.generator.TexturePack;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
-import org.dopelegend.multiItemDisplayEngine.rotation.Rotate;
-import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
@@ -30,12 +23,8 @@ public class ModelCommand {
         ItemDisplayGroup itemDisplayGroup = new ItemDisplayGroup(new Location(player.getWorld(), 0.5, 100.5 ,0.5), ctx.getArgument("model name", String.class));
         itemDisplayGroup.spawn();
 
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                itemDisplayGroup.teleportRelativeSmooth(new Triple(1, 0, 0), 5);
-            }
-        }.runTaskTimer(MultiItemDisplayEngine.plugin, 3, 5);
+        itemDisplayGroup.playAnimation("animation");
+
 
         return 1;
     }

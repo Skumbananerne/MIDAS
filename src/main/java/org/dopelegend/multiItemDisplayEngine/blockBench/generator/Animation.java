@@ -123,11 +123,16 @@ public class Animation {
      */
     private List<KeyFrame> addSortedKeyFrame(List<KeyFrame> keyFrames, KeyFrame keyFrame, int index) {
         if (index > keyFrames.size() || index < 0) {index = keyFrames.size();}
-        if (keyFrames.isEmpty() || index == 0) {
+
+        if (keyFrames.isEmpty()) {
             keyFrames.add(keyFrame);
             return keyFrames;
         }
 
+        if (index == 0) {
+            keyFrames.add(0, keyFrame);
+            return keyFrames;
+        }
 
         if (keyFrames.get(index-1).getTimeStamp() <= keyFrame.getTimeStamp()) {
             keyFrames.add(index, keyFrame);

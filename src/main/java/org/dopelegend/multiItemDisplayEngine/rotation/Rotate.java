@@ -74,6 +74,27 @@ public class Rotate {
 
     /**
      *
+     * Sets the rotation of a single bone.
+     *
+     * @param bone The bone to rotate
+     * @param rotation The rotation as a triple representing euler angles in degrees.
+     */
+    public static void SetSingleBoneRotation(Bone bone, Triple rotation) {
+        if (!bone.hasElement()) return;
+
+        rotation.x = rotation.x % 360;
+        rotation.y = rotation.y % 360;
+        rotation.z = rotation.z % 360;
+
+        ItemDisplay itemDisplay = bone.getItemDisplay();
+
+        Matrix4f currentMatrix = new Matrix4f();
+        currentMatrix.rotateXYZ(new Vector3f((float) Math.toRadians(rotation.x), (float) Math.toRadians(rotation.y), (float) Math.toRadians(rotation.z)));
+        itemDisplay.setTransformationMatrix(currentMatrix);
+    }
+
+    /**
+     *
      * Sets the rotation of a single bone around some relative point.
      *
      * @param bone The bone to rotate
@@ -109,8 +130,9 @@ public class Rotate {
      */
     public static void AddBoneRotationAround(Bone bone, Location pivotPoint, Triple rotation) {
         if (!bone.hasElement()) return;
-        Triple oldRotation = bone.getRotation();
-        Triple newRotation = new Triple(oldRotation.x + rotation.x, oldRotation.y + rotation.y, oldRotation.z + rotation.z);
+        Triple baseRotation = bone.getBaseRotation();
+        Triple oldRotation = bone.getCurrentRotation();
+        Triple newRotation = new Triple(oldRotation.x + rotation.x + baseRotation.x, oldRotation.y + rotation.y + baseRotation.y, oldRotation.z + rotation.z  + baseRotation.z);
         SetBoneRotationAround(bone, pivotPoint, newRotation);
     }
 
@@ -124,7 +146,7 @@ public class Rotate {
      */
     public static void AddBoneRotationAroundRelative(Bone bone, Triple relPoint, Triple rotation) {
         if (!bone.hasElement()) return;
-        Triple oldRotation = bone.getRotation();
+        Triple oldRotation = bone.getBaseRotation();
         Triple newRotation = new Triple(oldRotation.x + rotation.x, oldRotation.y + rotation.y, oldRotation.z + rotation.z);
         SetBoneRotationAroundRelative(bone, relPoint, newRotation);
     }
@@ -157,7 +179,7 @@ public class Rotate {
      */
     public static void AddBoneRotationWithChildren(Bone rootBone, Triple rotation) {
         if (!rootBone.hasElement()) return;
-        Triple oldRotation = rootBone.getRotation();
+        Triple oldRotation = rootBone.getBaseRotation();
         Triple newRotation = new Triple(oldRotation.x + rotation.x, oldRotation.y + rotation.y, oldRotation.z + rotation.z);
         SetBoneRotationWithChildren(rootBone, newRotation);
     }

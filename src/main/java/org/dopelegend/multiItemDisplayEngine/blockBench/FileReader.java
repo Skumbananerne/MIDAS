@@ -102,6 +102,12 @@ public class FileReader {
         // Get origin array
         JsonArray originArray = boneObject.getAsJsonArray("origin");
 
+        JsonArray rotationArray = boneObject.getAsJsonArray("rotation");
+        Triple rotation = new Triple(0, 0, 0);
+        if(rotationArray != null){
+            rotation = new Triple(rotationArray.get(0).getAsDouble(), rotationArray.get(1).getAsDouble(), rotationArray.get(2).getAsDouble());
+        }
+
         // Get outlinerBone
         String boneUUID = boneObject.get("uuid").getAsString();
 
@@ -124,9 +130,9 @@ public class FileReader {
 
         Bone bone;
         if(uuid == null){
-            // Bone does not have an element
             bone = new Bone(
                     new Triple(originArray.get(0).getAsDouble(), originArray.get(1).getAsDouble(),originArray.get(2).getAsDouble()),
+                    rotation,
                     parent,
                     new ArrayList<>(),
                     boneUUID
@@ -136,6 +142,7 @@ public class FileReader {
             // Bone has an element
             bone = new Bone(
                     new Triple(originArray.get(0).getAsDouble(), originArray.get(1).getAsDouble(),originArray.get(2).getAsDouble()),
+                    rotation,
                     parent,
                     new ArrayList<>(),
                     boneUUID,

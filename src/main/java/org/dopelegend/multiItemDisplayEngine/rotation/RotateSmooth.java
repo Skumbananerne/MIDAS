@@ -117,7 +117,7 @@ public class RotateSmooth {
      */
     public static void AddBoneRotationAroundSmooth(Bone bone, Location pivotPoint, Triple rotation, int interpolationDuration) {
         if (!bone.hasElement()) return;
-        Triple oldRotation = bone.getRotation();
+        Triple oldRotation = bone.getBaseRotation();
         Triple newRotation = new Triple(oldRotation.x + rotation.x, oldRotation.y + rotation.y, oldRotation.z + rotation.z);
         SetBoneRotationAroundSmooth(bone, pivotPoint, newRotation, interpolationDuration);
     }
@@ -133,7 +133,7 @@ public class RotateSmooth {
      */
     public static void AddBoneRotationAroundRelativeSmooth(Bone bone, Triple relPoint, Triple rotation, int interpolationDuration) {
         if (!bone.hasElement()) return;
-        Triple oldRotation = bone.getRotation();
+        Triple oldRotation = bone.getBaseRotation();
         Triple newRotation = new Triple(oldRotation.x + rotation.x, oldRotation.y + rotation.y, oldRotation.z + rotation.z);
         SetBoneRotationAroundRelativeSmooth(bone, relPoint, newRotation, interpolationDuration);
     }
@@ -167,9 +167,24 @@ public class RotateSmooth {
      */
     public static void AddBoneRotationWithChildrenSmooth(Bone rootBone, Triple rotation, int interpolationDuration) {
         if (!rootBone.hasElement()) return;
-        Triple oldRotation = rootBone.getRotation();
+        Triple oldRotation = rootBone.getBaseRotation();
         Triple newRotation = new Triple(oldRotation.x + rotation.x, oldRotation.y + rotation.y, oldRotation.z + rotation.z);
         SetBoneRotationWithChildrenSmooth(rootBone, newRotation, interpolationDuration);
     }
 
+    /**
+     *
+     * Smoothly sets the rotation of a single bone.
+     *
+     * @param bone The bone to rotate
+     * @param rotation The rotation as a triple representing euler angles in degrees.
+     * @param interpolationDuration The time it should take the bone to get from its start rotation to the end rotation
+     */
+    public static void SetSingleBoneRotationSmooth(Bone bone, Triple rotation, int interpolationDuration){
+        if (!bone.hasElement()) return;
+
+        bone.getItemDisplay().setInterpolationDelay(0);
+        bone.getItemDisplay().setTeleportDuration(interpolationDuration);
+        Rotate.SetSingleBoneRotation(bone, rotation);
+    }
 }

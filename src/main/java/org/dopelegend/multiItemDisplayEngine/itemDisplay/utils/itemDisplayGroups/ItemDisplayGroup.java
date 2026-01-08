@@ -25,6 +25,8 @@ import java.util.*;
  */
 public class ItemDisplayGroup {
 
+    public enum AnimationState{RUNNING, HOLDING, PAUSED, FREE}
+
     //Class variables
     private String groupUUID;
     private Location pivotPoint;
@@ -32,6 +34,8 @@ public class ItemDisplayGroup {
     private double yaw;
     private double pitch;
     private double roll;
+    private AnimationState animationState;
+
     /**
      * All the animations this ItemDisplayGroup has as a map where the key is a string name of the animation and the value is an Animation class.
      */
@@ -78,7 +82,7 @@ public class ItemDisplayGroup {
         }
         Bone rootBone = FileReader.getRootBone(file);
         if (rootBone == null) {
-            this.rootBone = new Bone(new Triple(0, 0,0), null, new ArrayList<>(), UUID.randomUUID().toString());
+            this.rootBone = new Bone(new Triple(0, 0,0), new Triple(0, 0,0), null, new ArrayList<>(), UUID.randomUUID().toString());
             MultiItemDisplayEngine.plugin.getLogger().severe("Failed to make rootBone (used empty RootBone instead) for ItemDisplayGroup using model: " + modelName);
             return;
         }
@@ -123,6 +127,10 @@ public class ItemDisplayGroup {
         return true;
     }
 
+    public void resetBonesPosAndRot(){
+        rootBone.resetLocation(rootBone.getItemDisplay());
+    }
+
     /**
      *
      * Makes this itemDisplayGroup play an animation with the given name.
@@ -131,60 +139,155 @@ public class ItemDisplayGroup {
      * @return False if the animation couldn't be found, true if it could.
      */
     public boolean playAnimation(String animationName){
-        if (!this.animations.containsKey(animationName)){return false;}
+        if (!this.animations.containsKey(animationName)) return false;
+        if (animationState == AnimationState.RUNNING) return false;
+
+        if(animationState == AnimationState.PAUSED || animationState == AnimationState.HOLDING){
+            resetBonesPosAndRot();
+        }
+
+        animationState = AnimationState.RUNNING;
+
         Animation animation = this.animations.get(animationName);
         Map<Bone, List<KeyFrame>> keyframes = animation.getKeyFrames();
 
         int animationDuration = 0;
 
-        for(Bone bone: keyframes.keySet()){
+        for(Bone bone : keyframes.keySet()){
             int timestamp = Math.round(keyframes.get(bone).getLast().getTimeStamp() * 20);
             if(timestamp > animationDuration) animationDuration = timestamp;
         }
-        for (Bone bone : keyframes.keySet()) {
-            List<KeyFrame> keyFrames = keyframes.get(bone);
 
-            final int[] duration = {0};
+        Animation.LoopMode mode = animation.getLoopMode();
+        Bone[] boneArray = keyframes.keySet().toArray(new Bone[0]);
 
+        for (int i = 0; i < boneArray.length; i++) {
+            List<KeyFrame> allBoneKeyFrames = keyframes.get(boneArray[i]);
+            List<List<KeyFrame>> sortedKeyframes = new ArrayList<>();
+
+            float lastTiming = 0;
+            List<KeyFrame> tempKeyframeList = new ArrayList<>();
+            for(KeyFrame keyFrame : allBoneKeyFrames){
+                if(keyFrame.getTimeStamp() <= lastTiming){
+                    tempKeyframeList.add(keyFrame);
+                }
+                else {
+                    sortedKeyframes.add(tempKeyframeList);
+                    tempKeyframeList = new ArrayList<>();
+                    lastTiming = keyFrame.getTimeStamp();
+                    tempKeyframeList.add(keyFrame);
+                }
+            }
+
+            int finalI = i;
+            int finalAnimationDuration = animationDuration;
             new BukkitRunnable(){
-                int i = 0;
+                int j = 0;
                 int currentDuration = 0;
                 boolean stop;
+
+                Triple lastLocation = new Triple(0, 0, 0);
+
+                int tickDelayRotation = 0;
+                int tickDelayPosition = 0;
+                int tickDelayStop = 0;
                 @Override
                 public void run() {
+                    if(tickDelayStop != 0){
+                        tickDelayStop--;
+                        return;
+                    };
                     if(stop){
                         cancel();
-                        //TODO Reset to default state if not loop
+                        if(mode == Animation.LoopMode.LOOP){
+                            if(finalI == boneArray.length-1){
+                                animationState = AnimationState.FREE;
+                                resetBonesPosAndRot();
+                                playAnimation(animationName);
+                            }
+                        }
+                        else if (mode == Animation.LoopMode.ONCE){
+                            animationState = AnimationState.FREE;
+                            resetBonesPosAndRot();
+                        }
+                        else if (mode == Animation.LoopMode.HOLD){
+                            animationState = AnimationState.HOLDING;
+                        }
                         return;
                     }
-                    if (i < keyFrames.size()) {
-                        KeyFrame keyFrame = keyFrames.get(i);
-                        if (i < keyFrames.size() - 1) {
-                            duration[0] = Math.round((keyFrames.get(i + 1).getTimeStamp() - keyFrame.getTimeStamp()) * 20);
-                        } else {
-                            duration[0] = 0;
-                        }
+                    if (j < sortedKeyframes.size()) {
+                        if(tickDelayPosition == 0 || tickDelayRotation == 0){
+                            int loopDuration = 0;
+                            if (j < sortedKeyframes.size() - 1) {
+                                KeyFrame keyFrame = sortedKeyframes.get(j).getFirst();
+                                loopDuration = Math.round((sortedKeyframes.get(j + 1).getFirst().getTimeStamp() - keyFrame.getTimeStamp()) * 20);
+                            }
 
-                        switch (keyFrame.getType()) {
-                            case "rotation":
-                                RotateSmooth.SetBoneRotationWithChildrenSmooth(bone, keyFrame.getXyz(), duration[0]);
-                                break;
-                            case "position":
-                                //TeleportSmooth.
-                                break;
-                            case "scale":
-                                //TODO SCALE
-                                break;
+                            boolean updated = false;
+                            for (KeyFrame keyFrame : sortedKeyframes.get(j)) {
+                                switch (keyFrame.getType()) {
+                                    case "rotation":
+                                        if(tickDelayRotation == 0){
+                                            KeyFrame validKeyframe = null;
+                                            for (int k = j + 1; k < sortedKeyframes.size(); k++) {
+                                                for(KeyFrame frame : sortedKeyframes.get(k)) {
+                                                    if(frame.getType().equals("rotation")){
+                                                        validKeyframe = frame;
+                                                    }
+                                                }
+                                            }
+                                            int duration = Math.round((validKeyframe != null ? validKeyframe.getTimeStamp() : 0 - keyFrame.getTimeStamp()) * 20);
+                                            RotateSmooth.SetBoneRotationWithChildrenSmooth(boneArray[finalI], keyFrame.getXyz(), duration);
+
+                                            tickDelayRotation = duration;
+                                            updated = true;
+                                        }
+                                        break;
+                                    case "position":
+                                        if(tickDelayPosition == 0){
+                                            KeyFrame validKeyframe = null;
+                                            for (int k = j + 1; k < sortedKeyframes.size(); k++) {
+                                                for(KeyFrame frame : sortedKeyframes.get(k)) {
+                                                    if(frame.getType().equals("position")){
+                                                        validKeyframe = frame;
+                                                    }
+                                                }
+                                            }
+                                            if(validKeyframe != null){
+                                                Triple relPos = validKeyframe.getXyz().remove(lastLocation);
+                                                relPos.divide(16);
+
+                                                int duration = Math.round((validKeyframe.getTimeStamp() - keyFrame.getTimeStamp()) * 20);
+                                                TeleportSmooth.TeleportBoneRelativeWithChildrenSmooth(boneArray[finalI], relPos, duration);
+
+                                                lastLocation = validKeyframe.getXyz();
+
+                                                tickDelayPosition = duration;
+                                                updated = true;
+                                            }
+                                        }
+                                        break;
+                                    case "scale":
+                                        //TODO SCALE
+                                        break;
+                                }
+                            }
+
+                            if(updated){
+                                currentDuration += loopDuration;
+                                j++;
+                            }
                         }
-                        currentDuration += duration[0];
-                        i++;
+                        if(tickDelayPosition > 0) tickDelayPosition--;
+                        if(tickDelayRotation > 0) tickDelayRotation--;
+
                     } else {
-                        duration[0] -= currentDuration;
+                        tickDelayStop = finalAnimationDuration - currentDuration;
                         stop = true;
                     }
 
                 }
-            }.runTaskTimer(MultiItemDisplayEngine.plugin, 0L, duration[0]);
+            }.runTaskTimer(MultiItemDisplayEngine.plugin, 0L, 1);
         }
         
         return true;
@@ -319,4 +422,10 @@ public class ItemDisplayGroup {
     }
 
     public Bone getRootBone() {return this.rootBone;}
+
+    public AnimationState getAnimationState() {return this.animationState;}
+
+    public void setAnimationState(AnimationState animationState) {
+        this.animationState = animationState;
+    }
 }
