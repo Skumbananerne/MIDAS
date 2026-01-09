@@ -149,8 +149,8 @@ public class Bone {
 
     public void resetRotation(){
        Triple pivotPoint = new Triple(relPivot.x, relPivot.y, relPivot.z);
-       pivotPoint.divide(16);
-       Rotate.SetBoneRotationAroundRelative(this, new Triple(pivotPoint.x, pivotPoint.y, pivotPoint.z),  baseRotation);
+       pivotPoint.clone().divide(16);
+       Rotate.SetBoneRotationAroundRelative(this, new Triple(-pivotPoint.x, 0, -pivotPoint.z),  baseRotation);
     }
 
     /***

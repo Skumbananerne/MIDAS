@@ -168,16 +168,18 @@ public class ItemDisplayGroup {
             float lastTiming = 0;
             List<KeyFrame> tempKeyframeList = new ArrayList<>();
             for(KeyFrame keyFrame : allBoneKeyFrames){
-                if(keyFrame.getTimeStamp() <= lastTiming){
-                    tempKeyframeList.add(keyFrame);
-                }
-                else {
+                if(keyFrame.getTimeStamp() > lastTiming){
                     sortedKeyframes.add(tempKeyframeList);
                     tempKeyframeList = new ArrayList<>();
                     lastTiming = keyFrame.getTimeStamp();
                     tempKeyframeList.add(keyFrame);
                 }
+                else {
+                    tempKeyframeList.add(keyFrame);
+                }
             }
+
+            if(!tempKeyframeList.isEmpty()) sortedKeyframes.add(tempKeyframeList);
 
             int finalI = i;
             int finalAnimationDuration = animationDuration;
@@ -198,22 +200,22 @@ public class ItemDisplayGroup {
                         return;
                     };
                     if(stop){
-                        cancel();
-                        if(mode == Animation.LoopMode.LOOP){
-                            if(finalI == boneArray.length-1){
-                                animationState = AnimationState.FREE;
-                                resetBonesPosAndRot();
-                                playAnimation(animationName);
-                            }
-                        }
-                        else if (mode == Animation.LoopMode.ONCE){
-                            animationState = AnimationState.FREE;
-                            resetBonesPosAndRot();
-                        }
-                        else if (mode == Animation.LoopMode.HOLD){
-                            animationState = AnimationState.HOLDING;
-                        }
-                        return;
+//                        cancel();
+//                        if(mode == Animation.LoopMode.LOOP){
+//                            if(finalI == boneArray.length-1){
+//                                animationState = AnimationState.FREE;
+//                                resetBonesPosAndRot();
+//                                playAnimation(animationName);
+//                            }
+//                        }
+//                        else if (mode == Animation.LoopMode.ONCE){
+//                            animationState = AnimationState.FREE;
+//                            resetBonesPosAndRot();
+//                        }
+//                        else if (mode == Animation.LoopMode.HOLD){
+//                            animationState = AnimationState.HOLDING;
+//                        }
+//                        return;
                     }
                     if (j < sortedKeyframes.size()) {
                         if(tickDelayPosition == 0 || tickDelayRotation == 0){
@@ -222,7 +224,6 @@ public class ItemDisplayGroup {
                                 KeyFrame keyFrame = sortedKeyframes.get(j).getFirst();
                                 loopDuration = Math.round((sortedKeyframes.get(j + 1).getFirst().getTimeStamp() - keyFrame.getTimeStamp()) * 20);
                             }
-
                             boolean updated = false;
                             for (KeyFrame keyFrame : sortedKeyframes.get(j)) {
                                 switch (keyFrame.getType()) {
@@ -247,6 +248,7 @@ public class ItemDisplayGroup {
                                         if(tickDelayPosition == 0){
                                             KeyFrame validKeyframe = null;
                                             for (int k = j + 1; k < sortedKeyframes.size(); k++) {
+                                                if(validKeyframe != null) break;
                                                 for(KeyFrame frame : sortedKeyframes.get(k)) {
                                                     if(frame.getType().equals("position")){
                                                         validKeyframe = frame;
@@ -254,17 +256,18 @@ public class ItemDisplayGroup {
                                                 }
                                             }
                                             if(validKeyframe != null){
-                                                Triple relPos = validKeyframe.getXyz().remove(lastLocation);
+                                                Triple relPos = validKeyframe.getXyz().clone();
+                                                relPos.remove(lastLocation);
                                                 relPos.divide(16);
 
                                                 int duration = Math.round((validKeyframe.getTimeStamp() - keyFrame.getTimeStamp()) * 20);
-                                                TeleportSmooth.TeleportBoneRelativeWithChildrenSmooth(boneArray[finalI], relPos, duration);
+                                                //TeleportSmooth.TeleportBoneRelativeWithChildrenSmooth(boneArray[finalI], relPos, duration);
 
                                                 lastLocation = validKeyframe.getXyz();
 
                                                 tickDelayPosition = duration;
-                                                updated = true;
                                             }
+                                            updated = true;
                                         }
                                         break;
                                     case "scale":

@@ -17,7 +17,17 @@ public class Triple {
         this.x -= triple.x;
         this.y -= triple.y;
         this.z -= triple.z;
-        return this;
+        return new Triple(x, y, z);
+    }
+
+    /**
+     *
+     * Makes a copy of this Triple.
+     *
+     * @return The copy
+     */
+    public Triple clone(){
+        return new Triple(x, y, z);
     }
 
     /**
@@ -43,7 +53,7 @@ public class Triple {
         this.x /= d;
         this.y /= d;
         this.z /= d;
-        return this;
+        return new Triple(x, y, z);
     }
 
     public void setX(double x) {
