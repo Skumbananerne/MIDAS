@@ -99,7 +99,7 @@ public class Rotate {
      *
      * @param bone The bone to rotate
      * @param relPoint The relative point to rotate around
-     * @param rotation The rotation as a triple representing euler angles in degrees.
+     * @param rotation The rotation as a triple represented as an euler angles in degrees.
      */
     public static void SetBoneRotationAroundRelative(Bone bone, Triple relPoint, Triple rotation) {
         if (!bone.hasElement()) return;
@@ -160,7 +160,10 @@ public class Rotate {
      * @param rotation The rotation as an euler angle in degrees (xyz)
      */
     public static void SetBoneRotationWithChildren(Bone rootBone, Triple rotation) {
-        Triple rootOrigin = rootBone.getRelOrigin();
+        Triple rootOrigin = rootBone.getRelOrigin().clone();
+        rootOrigin.invert();
+        rootOrigin.setY(-rootOrigin.y);
+        rootOrigin.divide(16);
         for (Bone bone : rootBone.getAllChildrenBones(true)) {
             if (!bone.hasElement()) {continue;}
             ItemDisplay itemDisplay = bone.getItemDisplay();

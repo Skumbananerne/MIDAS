@@ -22,6 +22,19 @@ public class Triple {
 
     /**
      *
+     * Makes all values in the triple inverted (negative to positive, positive to negative)
+     *
+     * @return A new triple also with the inverted values.
+     */
+    public Triple invert() {
+        this.x = -this.x;
+        this.y = -this.y;
+        this.z = -this.z;
+        return new Triple(x, y, z);
+    }
+
+    /**
+     *
      * Makes a copy of this Triple.
      *
      * @return The copy

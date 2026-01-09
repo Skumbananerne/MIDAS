@@ -148,6 +148,8 @@ public class RotateSmooth {
      */
     public static void SetBoneRotationWithChildrenSmooth(Bone rootBone, Triple rotation, int interpolationDuration) {
         Triple rootOrigin = rootBone.getRelOrigin();
+
+
         for (Bone bone : rootBone.getAllChildrenBones(true)) {
             if (!bone.hasElement()) {continue;}
             ItemDisplay itemDisplay = bone.getItemDisplay();

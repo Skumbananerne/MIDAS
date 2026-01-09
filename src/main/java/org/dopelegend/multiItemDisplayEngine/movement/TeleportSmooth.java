@@ -1,10 +1,13 @@
 package org.dopelegend.multiItemDisplayEngine.movement;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
+import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
+import org.joml.Matrix4f;
 
 public class TeleportSmooth {
 
@@ -73,8 +76,21 @@ public class TeleportSmooth {
         for (Bone bone : rootBone.getAllChildrenBones(true)) {
             if (!bone.hasElement()) continue;
             ItemDisplay itemDisplay = bone.getItemDisplay();
-            itemDisplay.setTeleportDuration(teleportDuration);
+            Location itemDisplayLoc = itemDisplay.getLocation();
+ //           itemDisplay.setTeleportDuration(teleportDuration);
+//            itemDisplay.teleportAsync(itemDisplayLoc.clone().add(relativeCoords.x, relativeCoords.y, relativeCoords.z)).thenAccept(success -> {
+//                itemDisplay.setTeleportDuration(0);
+//            });
+  //          itemDisplay.teleport(itemDisplayLoc.clone().add(relativeCoords.x, relativeCoords.y, relativeCoords.z));
+
+            // TEST
+            Matrix4f translationMatrix = new Matrix4f();
+            translationMatrix.rotateXYZ(bone.getCurrentRotation().toVector3f());
+            translationMatrix.translate(relativeCoords.toVector3f());
+            itemDisplay.setInterpolationDelay(0);
+            itemDisplay.setInterpolationDuration(teleportDuration);
+            itemDisplay.setTransformationMatrix(translationMatrix);
         }
-        Teleport.teleportBoneRelativeWithChildren(rootBone, relativeCoords);
+        //Teleport.teleportBoneRelativeWithChildren(rootBone, relativeCoords);
     }
 }

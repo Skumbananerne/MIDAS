@@ -26,6 +26,7 @@ public class Teleport {
 
             Triple offset = new Triple(itemDisplayLoc.getX()-pivotPoint.getX(), itemDisplayLoc.getY()-pivotPoint.getY(), itemDisplayLoc.getZ()-pivotPoint.getZ());
             itemDisplay.teleport(teleportLocation.clone().add(offset.x, offset.y, offset.z));
+            itemDisplay.setTeleportDuration(0);
         }
         itemDisplayGroup.setPivotPoint(teleportLocation);
     }
@@ -43,6 +44,7 @@ public class Teleport {
             Triple offset = new Triple(itemDisplayLoc.getX()-pivotPoint.getX(), itemDisplayLoc.getY()-pivotPoint.getY(), itemDisplayLoc.getZ()-pivotPoint.getZ());
 
             itemDisplay.teleport(teleportLocation.clone().add(offset.x, offset.y, offset.z));
+            itemDisplay.setTeleportDuration(0);
         }
         itemDisplayGroup.setPivotPoint(teleportLocation);
     }
@@ -58,6 +60,7 @@ public class Teleport {
         if (!bone.hasElement()) return;
         ItemDisplay itemDisplay = bone.getItemDisplay();
         itemDisplay.teleport(location);
+        itemDisplay.setTeleportDuration(0);
     }
 
     /**
@@ -71,6 +74,7 @@ public class Teleport {
         if (!bone.hasElement()) return;
         ItemDisplay itemDisplay = bone.getItemDisplay();
         itemDisplay.teleport(location.add(bone.getItemDisplay().getLocation()));
+        itemDisplay.setTeleportDuration(0);
     }
 
     /**
@@ -84,6 +88,7 @@ public class Teleport {
         ItemDisplay rootBoneDisplay = rootBone.getItemDisplay();
         Location rootBoneLoc = rootBoneDisplay.getLocation();
         rootBoneDisplay.teleport(location);
+        rootBoneDisplay.setTeleportDuration(0);
         Triple offset = new Triple(rootBoneLoc.getX()-location.getX(), rootBoneLoc.getY()-location.getY(), rootBoneLoc.getZ()-location.getZ());
 
         for (Bone bone : rootBone.getAllChildrenBones(false)) {
@@ -91,6 +96,7 @@ public class Teleport {
             ItemDisplay itemDisplay = bone.getItemDisplay();
             Location itemDisplayLoc = itemDisplay.getLocation();
             itemDisplay.teleport(itemDisplayLoc.clone().add(offset.x, offset.y, offset.z));
+            itemDisplay.setTeleportDuration(0);
         }
     }
 
@@ -106,7 +112,14 @@ public class Teleport {
             if (!bone.hasElement()) continue;
             ItemDisplay itemDisplay = bone.getItemDisplay();
             Location itemDisplayLoc = itemDisplay.getLocation();
-            itemDisplay.teleport(itemDisplayLoc.clone().add(relativeCoords.x, relativeCoords.y, relativeCoords.z));
+//            itemDisplay.teleportAsync(itemDisplayLoc.clone().add(relativeCoords.x, relativeCoords.y, relativeCoords.z)).thenAccept(success -> {
+//                itemDisplay.setTeleportDuration(0);
+//            });
+
+            if(itemDisplay.teleport(itemDisplayLoc.clone().add(relativeCoords.x, relativeCoords.y, relativeCoords.z))){
+                itemDisplay.setTeleportDuration(0);
+            }
+
         }
     }
 }

@@ -9,6 +9,7 @@ import org.bukkit.entity.ItemDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Transformation;
+import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.movement.Teleport;
 import org.dopelegend.multiItemDisplayEngine.rotation.Rotate;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
@@ -60,8 +61,8 @@ public class Bone {
         this.childrenBones = childrenBones;
         this.parentBone = parentBone;
         this.hasElement = false;
-        // TODO change this to actually get it from the bone
         this.baseRotation = baseRotation;
+        this.currentRotation = baseRotation;
     }
 
     /**
@@ -81,9 +82,13 @@ public class Bone {
         this.hasElement = true;
         this.modelName = modelName;
         this.baseRotation = baseRotation;
+        this.currentRotation = baseRotation;
     }
 
     public void spawn(Triple originPosition, World world){
+        for(int i = 0; i < this.childrenBones.size(); i++){
+            this.childrenBones.get(i).spawn(originPosition, world);
+        }
         if(this.hasElement && this.itemDisplay == null){
             Triple spawnPosition = new Triple(
                     originPosition.x - (relPivot.x / 16),
@@ -102,7 +107,6 @@ public class Bone {
             itemDisplayItem.setItemMeta(meta);
             this.itemDisplay.setItemStack(itemDisplayItem);
 
-            //Rotate.SetSingleBoneRotation(this, this.baseRotation);
             resetRotation();
 
             // Spawn pivot diamond BLOCK
@@ -124,19 +128,16 @@ public class Bone {
             }
             pivotPointDisplay.setItemStack(diamondBlock);
         }
-        for(int i = 0; i < this.childrenBones.size(); i++){
-            this.childrenBones.get(i).spawn(originPosition, world);
-        }
     }
 
-    /***
+    /**
      *
      * Reset the bones location relative to the defined ItemDisplay
      *
      * @param display the ItemDisplay to reset relative to
      */
-    public void resetLocation(ItemDisplay display){
-        Location location = display.getLocation();
+    public void resetLocation(ItemDisplayGroup display){
+        Location location = display.getPivotPoint();
         location.set(
                 location.getX() - (relPivot.x / 16),
                 location.getY() + (relPivot.y / 16),
@@ -148,22 +149,19 @@ public class Bone {
     }
 
     public void resetRotation(){
-       Triple pivotPoint = new Triple(relPivot.x, relPivot.y, relPivot.z);
-       pivotPoint.clone().divide(16);
-       Rotate.SetBoneRotationAroundRelative(this, new Triple(-pivotPoint.x, 0, -pivotPoint.z),  baseRotation);
+       Rotate.SetBoneRotationWithChildren(this,  baseRotation);
     }
 
-    /***
-     *
-     * Reset the bones location relative to the defined ItemDisplay with children
+    /**
+     * Resets the bones location relative to the defined ItemDisplay with children
      *
      * @param display the ItemDisplay to reset relative to
      * @param withChildren Should the children bones also have their rotation reset
      */
-    public void resetLocation(ItemDisplay display, boolean withChildren){
+    public void resetLocation(ItemDisplayGroup display, boolean withChildren){
         resetLocation(display);
         if(withChildren){
-            Location location = display.getLocation();
+            Location location = display.getPivotPoint();
             location.set(
                     location.getX() - (relPivot.x / 16),
                     location.getY() + (relPivot.y / 16),
@@ -174,7 +172,7 @@ public class Bone {
             Rotate.SetSingleBoneRotation(this, baseRotation);
 
             for(Bone bone : this.childrenBones){
-                bone.resetLocation(display, withChildren);
+                bone.resetLocation(display, true);
             }
         }
     }
