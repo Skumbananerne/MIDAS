@@ -32,9 +32,9 @@ public class ModelCommand {
 //        new BukkitRunnable() {
 //            @Override
 //            public void run() {
-//                itemDisplayGroup.addRotationSmooth(new Triple(0, 180, 0), 20);
+//                itemDisplayGroup.teleportRelativeSmooth(new Triple(0, 0, 1), 5);
 //            }
-//        }.runTaskTimer(MultiItemDisplayEngine.plugin, 0L, 20L);
+//        }.runTaskTimer(MultiItemDisplayEngine.plugin, 0L, 5L);
 
         return 1;
     }

@@ -38,13 +38,13 @@ public class TeleportSmooth {
      * @param teleportDuration How long the teleport should take. (How long it should take for the itemDisplayGroup to get from start loc to end loc)
      */
     public static void TeleportItemDisplayGroupRelativeSmooth(ItemDisplayGroup itemDisplayGroup, Triple relativeCoordinates, int teleportDuration){
-
         for (Bone bone : itemDisplayGroup.getRootBone().getAllChildrenBones(true)){
             if(!bone.hasElement()) continue;
+
             bone.getItemDisplay().setTeleportDuration(teleportDuration);
         }
 
-        itemDisplayGroup.teleportRelative(relativeCoordinates);
+        Teleport.teleportItemDisplayGroupRelative(itemDisplayGroup, relativeCoordinates);
     }
 
     /**
@@ -76,21 +76,8 @@ public class TeleportSmooth {
         for (Bone bone : rootBone.getAllChildrenBones(true)) {
             if (!bone.hasElement()) continue;
             ItemDisplay itemDisplay = bone.getItemDisplay();
-            Location itemDisplayLoc = itemDisplay.getLocation();
- //           itemDisplay.setTeleportDuration(teleportDuration);
-//            itemDisplay.teleportAsync(itemDisplayLoc.clone().add(relativeCoords.x, relativeCoords.y, relativeCoords.z)).thenAccept(success -> {
-//                itemDisplay.setTeleportDuration(0);
-//            });
-  //          itemDisplay.teleport(itemDisplayLoc.clone().add(relativeCoords.x, relativeCoords.y, relativeCoords.z));
-
-            // TEST
-            Matrix4f translationMatrix = new Matrix4f();
-            translationMatrix.rotateXYZ(bone.getCurrentRotation().toVector3f());
-            translationMatrix.translate(relativeCoords.toVector3f());
-            itemDisplay.setInterpolationDelay(0);
-            itemDisplay.setInterpolationDuration(teleportDuration);
-            itemDisplay.setTransformationMatrix(translationMatrix);
+            itemDisplay.setTeleportDuration(teleportDuration);
         }
-        //Teleport.teleportBoneRelativeWithChildren(rootBone, relativeCoords);
+        Teleport.teleportBoneRelativeWithChildren(rootBone, relativeCoords);
     }
 }

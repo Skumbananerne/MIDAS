@@ -43,6 +43,11 @@ public class Animation {
      */
     private final LoopMode loopMode;
     // TODO maybe implement missing features: Anim Time Update, Blend Weight, Start Delay, Loop Delay, Override, Snapping and interpolation type.
+    /**
+     * How long the animation is in seconds
+     */
+    private final float length;
+
 
     /**
      *
@@ -56,11 +61,12 @@ public class Animation {
      *         </ul>
      * @param keyFrames A map of keyframes indexed by bone, this should contain every keyframe for every bone.
      */
-    public Animation(String name, String uuid, LoopMode loopMode, Map<Bone, List<KeyFrame>> keyFrames) {
+    public Animation(String name, String uuid, LoopMode loopMode, Map<Bone, List<KeyFrame>> keyFrames, float length) {
         this.name = name;
         this.uuid = uuid;
         this.loopMode = loopMode;
         this.keyFrames = keyFrames;
+        this.length = length;
     }
 
     /**
@@ -72,6 +78,8 @@ public class Animation {
 
         // Get and set uuid
         this.uuid = animation.get("uuid").getAsString();
+
+        this.length = animation.get("length").getAsFloat();
 
         // Get and set loop mode
         String loopMode = animation.get("loop").getAsString();
@@ -153,6 +161,10 @@ public class Animation {
 
     public String getUuid() {
         return uuid;
+    }
+
+    public float getLength() {
+        return length;
     }
 
     /**

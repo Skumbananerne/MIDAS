@@ -1,7 +1,9 @@
 package org.dopelegend.multiItemDisplayEngine.movement;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
+import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
@@ -36,17 +38,22 @@ public class Teleport {
         Bone rootBone = itemDisplayGroup.getRootBone();
         Location pivotPoint = itemDisplayGroup.getPivotPoint();
         Location teleportLocation = new Location(pivotPoint.getWorld(), pivotPoint.getX()+relativeCoordinates.x, pivotPoint.getY()+relativeCoordinates.y, pivotPoint.getZ()+relativeCoordinates.z, 0, 0);
-        for (Bone bone : rootBone.getAllChildrenBones(true)) {
-            if (!bone.hasElement()) continue;
+       Bukkit.getScheduler().runTaskLater(
+               MultiItemDisplayEngine.plugin,
+               () -> {
+                   for (Bone bone : rootBone.getAllChildrenBones(true)) {
+                       if (!bone.hasElement()) continue;
 
-            ItemDisplay itemDisplay = bone.getItemDisplay();
-            Location itemDisplayLoc = itemDisplay.getLocation();
-            Triple offset = new Triple(itemDisplayLoc.getX()-pivotPoint.getX(), itemDisplayLoc.getY()-pivotPoint.getY(), itemDisplayLoc.getZ()-pivotPoint.getZ());
+                       ItemDisplay itemDisplay = bone.getItemDisplay();
+                       Location itemDisplayLoc = itemDisplay.getLocation();
+                       Triple offset = Triple.difference(pivotPoint, itemDisplayLoc);
+                       itemDisplay.teleport(teleportLocation.clone().add(offset.x, offset.y, offset.z));
+                       itemDisplay.setTeleportDuration(0);
+                   }
+                   itemDisplayGroup.setPivotPoint(teleportLocation);
+               }, 1
+       );
 
-            itemDisplay.teleport(teleportLocation.clone().add(offset.x, offset.y, offset.z));
-            itemDisplay.setTeleportDuration(0);
-        }
-        itemDisplayGroup.setPivotPoint(teleportLocation);
     }
 
     /**
@@ -108,18 +115,21 @@ public class Teleport {
      * @param relativeCoords The relative position you want to offset the bone and all of its children by.
      */
     public static void teleportBoneRelativeWithChildren(Bone rootBone, Triple relativeCoords) {
-        for (Bone bone : rootBone.getAllChildrenBones(true)) {
-            if (!bone.hasElement()) continue;
-            ItemDisplay itemDisplay = bone.getItemDisplay();
-            Location itemDisplayLoc = itemDisplay.getLocation();
-//            itemDisplay.teleportAsync(itemDisplayLoc.clone().add(relativeCoords.x, relativeCoords.y, relativeCoords.z)).thenAccept(success -> {
-//                itemDisplay.setTeleportDuration(0);
-//            });
 
-            if(itemDisplay.teleport(itemDisplayLoc.clone().add(relativeCoords.x, relativeCoords.y, relativeCoords.z))){
-                itemDisplay.setTeleportDuration(0);
-            }
+        Bukkit.getScheduler().runTaskLater(
+                MultiItemDisplayEngine.plugin,
+                () -> {
+                    for (Bone bone : rootBone.getAllChildrenBones(true)) {
+                        if (!bone.hasElement()) continue;
 
-        }
+                        ItemDisplay itemDisplay = bone.getItemDisplay();
+                        Location itemDisplayLoc = itemDisplay.getLocation();
+                        itemDisplay.teleport(itemDisplayLoc.clone().add(relativeCoords.x, relativeCoords.y, relativeCoords.z));
+                        MultiItemDisplayEngine.plugin.getLogger().info("Teleport duration: "+itemDisplay.getTeleportDuration());
+
+                        itemDisplay.setTeleportDuration(0);
+                    }
+                }, 1
+        );
     }
 }

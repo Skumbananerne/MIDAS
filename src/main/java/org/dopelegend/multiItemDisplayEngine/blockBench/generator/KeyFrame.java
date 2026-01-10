@@ -43,7 +43,7 @@ public class KeyFrame {
     }
 
     public Triple getXyz() {
-        return xyz;
+        return xyz.clone();
     }
 
     public String getType() {

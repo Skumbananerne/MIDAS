@@ -3,6 +3,7 @@ package org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroup
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -149,151 +150,186 @@ public class ItemDisplayGroup {
         animationState = AnimationState.RUNNING;
 
         Animation animation = this.animations.get(animationName);
-        Map<Bone, List<KeyFrame>> keyframes = animation.getKeyFrames();
-
-        int animationDuration = 0;
-
-        for(Bone bone : keyframes.keySet()){
-            int timestamp = Math.round(keyframes.get(bone).getLast().getTimeStamp() * 20);
-            if(timestamp > animationDuration) animationDuration = timestamp;
-        }
+        Map<Bone, List<KeyFrame>> keyframeSet = animation.getKeyFrames();
 
         Animation.LoopMode mode = animation.getLoopMode();
-        Bone[] boneArray = keyframes.keySet().toArray(new Bone[0]);
+        Bone[] boneArray = keyframeSet.keySet().toArray(new Bone[0]);
 
         for (int i = 0; i < boneArray.length; i++) {
-            List<KeyFrame> allBoneKeyFrames = keyframes.get(boneArray[i]);
-            List<List<KeyFrame>> sortedKeyframes = new ArrayList<>();
+            List<KeyFrame> keyFrames = keyframeSet.get(boneArray[i]);
 
-            float lastTiming = 0;
-            List<KeyFrame> tempKeyframeList = new ArrayList<>();
-            for(KeyFrame keyFrame : allBoneKeyFrames){
-                if(keyFrame.getTimeStamp() > lastTiming){
-                    if(!tempKeyframeList.isEmpty()) sortedKeyframes.add(tempKeyframeList);
-                    tempKeyframeList = new ArrayList<>();
-                    lastTiming = keyFrame.getTimeStamp();
-                    tempKeyframeList.add(keyFrame);
-                }
-                else {
-                    tempKeyframeList.add(keyFrame);
+            for (int j = 0; j < keyFrames.size(); j++) {
+                KeyFrame keyFrame = keyFrames.get(j);
+                MultiItemDisplayEngine.plugin.getLogger().info("Task delay: "+Math.round(keyFrame.getTimeStamp() * 20));
+                int finalJ = j;
+                int finalI = i;
+                new BukkitRunnable(){
+                    @Override
+                    public void run() {
+                        KeyFrame validKeyframe = null;
+                        switch (keyFrame.getType()) {
+                            case "rotation":
+                                for (int k = finalJ + 1; k < keyFrames.size(); k++) {
+                                    if (validKeyframe != null) break;
+                                    if (keyFrames.get(k).getType().equals("rotation")) {
+                                        validKeyframe = keyFrames.get(k);
+                                    }
+                                }
+                                if (validKeyframe != null) {
+                                    int smoothDuration = Math.round((validKeyframe.getTimeStamp() - keyFrame.getTimeStamp()) * 20);
+                                    RotateSmooth.SetBoneRotationWithChildrenSmooth(boneArray[finalI], validKeyframe.getXyz(), smoothDuration);
+                                }
+                                break;
+                            case "position":
+                                for (int k = finalJ + 1; k < keyFrames.size(); k++) {
+                                    if (validKeyframe != null) break;
+                                    if (keyFrames.get(k).getType().equals("position")) {
+                                        validKeyframe = keyFrames.get(k);
+                                    }
+                                }
+
+                                if (validKeyframe != null) {
+                                    Triple relPos = validKeyframe.getXyz().clone();
+                                    relPos.remove(keyFrame.getXyz());
+                                    relPos.divide(16);
+
+                                    int smoothDuration = Math.round((validKeyframe.getTimeStamp() - keyFrame.getTimeStamp()) * 20);
+                                    MultiItemDisplayEngine.plugin.getLogger().info("Smooth duration: "+smoothDuration);
+                                    TeleportSmooth.TeleportBoneRelativeWithChildrenSmooth(boneArray[finalI], relPos, smoothDuration);
+                                }
+                                break;
+                            case "scale":
+                                //TODO SCALE
+                                break;
+                        }
+                    }
+                }.runTaskLater(MultiItemDisplayEngine.plugin, Math.round(keyFrame.getTimeStamp() * 20));
+            }
+        }
+
+        new BukkitRunnable(){
+            @Override
+            public void run() {
+                if (mode == Animation.LoopMode.LOOP) {
+                    animationState = AnimationState.FREE;
+                    resetBonesPosAndRot();
+                    playAnimation(animationName);
+                } else if (mode == Animation.LoopMode.ONCE) {
+                    animationState = AnimationState.FREE;
+                    resetBonesPosAndRot();
+                } else if (mode == Animation.LoopMode.HOLD) {
+                    animationState = AnimationState.HOLDING;
                 }
             }
+        }.runTaskLater(MultiItemDisplayEngine.plugin, Math.round(animation.getLength() * 20) + 1);
 
-            if(!tempKeyframeList.isEmpty()) sortedKeyframes.add(tempKeyframeList);
-
-            int finalI = i;
-            int finalAnimationDuration = animationDuration;
-            new BukkitRunnable(){
-                int j = 0;
-                int currentDuration = 0;
-                boolean stop;
-
-                int tickDelayRotation = 0;
-                int tickDelayPosition = 0;
-                int tickDelayStop = 0;
-                @Override
-                public void run() {
-                    if(tickDelayStop != 0){
-                        tickDelayStop--;
-                        return;
-                    };
-                    if(stop){
-                        cancel();
-                        if(mode == Animation.LoopMode.LOOP){
-                            if(finalI == boneArray.length-1){
-                                animationState = AnimationState.FREE;
-                                resetBonesPosAndRot();
-                                playAnimation(animationName);
-                            }
-                        }
-                        else if (mode == Animation.LoopMode.ONCE){
-                            animationState = AnimationState.FREE;
-                            resetBonesPosAndRot();
-                        }
-                        else if (mode == Animation.LoopMode.HOLD){
-                            animationState = AnimationState.HOLDING;
-                        }
-                        return;
-                    }
-                    if (j < sortedKeyframes.size()) {
-                        if(tickDelayPosition == 0 || tickDelayRotation == 0){
-                            int loopDuration = 0;
-                            if (j < sortedKeyframes.size() - 1) {
-                                KeyFrame keyFrame = sortedKeyframes.get(j).getFirst();
-                                loopDuration = Math.round((sortedKeyframes.get(j + 1).getFirst().getTimeStamp() - keyFrame.getTimeStamp()) * 20);
-                            }
-                            boolean updated = false;
-                            for (KeyFrame keyFrame : sortedKeyframes.get(j)) {
-                                switch (keyFrame.getType()) {
-                                    case "rotation":
-                                        if(tickDelayRotation == 0){
-                                            KeyFrame validKeyframe = null;
-                                            for (int k = j + 1; k < sortedKeyframes.size(); k++) {
-                                                if(validKeyframe != null) break;
-                                                for(KeyFrame frame : sortedKeyframes.get(k)) {
-                                                    if(frame.getType().equals("rotation")){
-                                                        validKeyframe = frame;
-                                                    }
-                                                }
-                                            }
-                                            if(validKeyframe != null) {
-                                                int smoothDuration = Math.round((validKeyframe.getTimeStamp() - keyFrame.getTimeStamp()) * 20);
-                                                RotateSmooth.SetBoneRotationWithChildrenSmooth(boneArray[finalI], keyFrame.getXyz(), smoothDuration);
-
-                                                tickDelayRotation = smoothDuration;
-                                            }
-                                            updated = true;
-                                        }
-                                        break;
-                                    case "position":
-                                        if(tickDelayPosition == 0){
-                                            KeyFrame validKeyframe = null;
-                                            for (int k = j + 1; k < sortedKeyframes.size(); k++) {
-                                                if(validKeyframe != null) break;
-                                                for(KeyFrame frame : sortedKeyframes.get(k)) {
-                                                    if(frame.getType().equals("position")){
-                                                        validKeyframe = frame;
-                                                    }
-                                                }
-                                            }
-                                            if(validKeyframe != null){
-                                                Triple relPos = validKeyframe.getXyz().clone();
-                                                relPos.remove(keyFrame.getXyz());
-                                                relPos.divide(16);
-
-                                                int smoothDuration = Math.round((validKeyframe.getTimeStamp() - keyFrame.getTimeStamp()) * 20);
-                                                TeleportSmooth.TeleportBoneRelativeWithChildrenSmooth(boneArray[finalI], relPos, smoothDuration);
-
-                                                tickDelayPosition = smoothDuration;
-                                            }
-                                            updated = true;
-                                        }
-                                        break;
-                                    case "scale":
-                                        //TODO SCALE
-                                        break;
-                                }
-                            }
-
-                            if(updated){
-                                currentDuration += loopDuration;
-                                j++;
-                            }
-                        }
-                        if(tickDelayPosition > 0) tickDelayPosition--;
-                        if(tickDelayRotation > 0) tickDelayRotation--;
-
-                    } else {
-                        tickDelayStop = finalAnimationDuration - currentDuration;
-                        stop = true;
-                    }
-
-                }
-            }.runTaskTimer(MultiItemDisplayEngine.plugin, 0L, 1);
-        }
-        
         return true;
     }
+
+
+//    public boolean playAnimation(String animationName){
+//        if (!this.animations.containsKey(animationName)) return false;
+//        if (animationState == AnimationState.RUNNING) return false;
+//
+//        if(animationState == AnimationState.PAUSED || animationState == AnimationState.HOLDING){
+//            resetBonesPosAndRot();
+//        }
+//
+//        animationState = AnimationState.RUNNING;
+//
+//        Animation animation = this.animations.get(animationName);
+//        Map<Bone, List<KeyFrame>> keyframes = animation.getKeyFrames();
+//
+//        Animation.LoopMode mode = animation.getLoopMode();
+//        Bone[] boneArray = keyframes.keySet().toArray(new Bone[0]);
+//
+//        for (int i = 0; i < boneArray.length; i++) {
+//            List<KeyFrame> allBoneKeyFrames = keyframes.get(boneArray[i]);
+//            List<List<KeyFrame>> sortedKeyframes = new ArrayList<>();
+//
+//            float lastTiming = 0;
+//            List<KeyFrame> tempKeyframeList = new ArrayList<>();
+//            for(KeyFrame keyFrame : allBoneKeyFrames){
+//                if(keyFrame.getTimeStamp() > lastTiming){
+//                    if(!tempKeyframeList.isEmpty()) sortedKeyframes.add(tempKeyframeList);
+//                    tempKeyframeList = new ArrayList<>();
+//                    lastTiming = keyFrame.getTimeStamp();
+//                    tempKeyframeList.add(keyFrame);
+//                }
+//                else {
+//                    tempKeyframeList.add(keyFrame);
+//                }
+//            }
+//
+//            if(!tempKeyframeList.isEmpty()) sortedKeyframes.add(tempKeyframeList);
+//
+//            int finalI = i;
+//            int finalAnimationDuration = Math.round(animation.getLength()) * 20;
+//            new BukkitRunnable(){
+//                int j = 0;
+//                int currentDuration = 0;
+//                boolean stop;
+//
+//                int tickDelayRotation = 0;
+//                int tickDelayPosition = 0;
+//                int tickDelayStop = 0;
+//                @Override
+//                public void run() {
+//                    if(tickDelayStop != 0){
+//                        tickDelayStop--;
+//                        return;
+//                    };
+//                    if(stop){
+//                        cancel();
+//                        if(mode == Animation.LoopMode.LOOP){
+//                            if(finalI == boneArray.length-1){
+//                                animationState = AnimationState.FREE;
+//
+//                                resetBonesPosAndRot();
+//                                playAnimation(animationName);
+//                            }
+//                        }
+//                        else if (mode == Animation.LoopMode.ONCE){
+//                            animationState = AnimationState.FREE;
+//                            resetBonesPosAndRot();
+//                        }
+//                        else if (mode == Animation.LoopMode.HOLD){
+//                            animationState = AnimationState.HOLDING;
+//                        }
+//                        return;
+//                    }
+//                    if (j < sortedKeyframes.size()) {
+//                        if(tickDelayPosition == 0 || tickDelayRotation == 0){
+//                            int loopDuration = 0;
+//                            if (j < sortedKeyframes.size() - 1) {
+//                                KeyFrame keyFrame = sortedKeyframes.get(j).getFirst();
+//                                loopDuration = Math.round((sortedKeyframes.get(j + 1).getFirst().getTimeStamp() - keyFrame.getTimeStamp()) * 20);
+//                            }
+//                            boolean updated = false;
+//                            for (KeyFrame keyFrame : sortedKeyframes.get(j)) {
+//
+//                                }
+//                            }
+//
+//                            if(updated){
+//                                currentDuration += loopDuration;
+//                                j++;
+//                            }
+//                        }
+//                        if(tickDelayPosition > 0) tickDelayPosition -= 1;
+//                        if(tickDelayRotation > 0) tickDelayRotation -= 1;
+//
+//                    } else {
+//                        tickDelayStop = (finalAnimationDuration - currentDuration) + 1;
+//                        stop = true;
+//                    }
+//
+//                }
+//            }.runTaskTimer(MultiItemDisplayEngine.plugin, 0L, 1);
+//        }
+//
+//        return true;
+//    }
 
     /**
      *

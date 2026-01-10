@@ -178,7 +178,7 @@ public class Bone {
     }
 
     public Triple getRelOrigin() {
-        return relPivot;
+        return relPivot.clone();
     }
 
     public void setRelOrigin(Triple relOrigin) {

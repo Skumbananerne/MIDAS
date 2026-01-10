@@ -2,6 +2,8 @@ package org.dopelegend.multiItemDisplayEngine.rotation;
 
 import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
@@ -88,21 +90,28 @@ public class RotateSmooth {
     public static void SetBoneRotationAroundRelativeSmooth(Bone bone, Triple relPoint, Triple rotation,  int interpolationDuration) {
         if (!bone.hasElement()) return;
 
-        rotation.x = rotation.x % 360;
-        rotation.y = rotation.y % 360;
-        rotation.z = rotation.z % 360;
+        rotation = rotation.clone().modulo(360);
 
         ItemDisplay itemDisplay = bone.getItemDisplay();
 
         itemDisplay.setInterpolationDelay(0);
         itemDisplay.setInterpolationDuration(interpolationDuration);
+        MultiItemDisplayEngine.plugin.getLogger().info("InterpolationDuration: " + interpolationDuration);
 
-        Matrix4f currentMatrix = new Matrix4f();
-        Vector3f translation = new Vector3f((float) relPoint.x, (float) relPoint.y, (float) relPoint.z);
-        currentMatrix.translate(translation);
-        currentMatrix.rotateXYZ(new Vector3f((float) Math.toRadians(rotation.x), (float) Math.toRadians(rotation.y), (float) Math.toRadians(rotation.z)));
-        currentMatrix.translate(new Vector3f(-translation.x(), -translation.y(), -translation.z()));
-        itemDisplay.setTransformationMatrix(currentMatrix);
+        Triple finalRotation = rotation;
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                Vector3f translation = relPoint.toVector3f();
+                Vector3f negTranslation = relPoint.clone().invert().toVector3f();
+                Matrix4f currentMatrix = new Matrix4f();
+                currentMatrix.translate(negTranslation);
+                currentMatrix.rotateXYZ(finalRotation.clone().toRadians().toVector3f());
+                currentMatrix.translate(translation);
+                itemDisplay.setTransformationMatrix(currentMatrix);
+
+            }
+        }.runTaskLater(MultiItemDisplayEngine.plugin, 1);
     }
 
 
@@ -147,14 +156,23 @@ public class RotateSmooth {
      * @param interpolationDuration The time it takes the itemDisplayGroup to get from its start rotation to the end rotation
      */
     public static void SetBoneRotationWithChildrenSmooth(Bone rootBone, Triple rotation, int interpolationDuration) {
-        Triple rootOrigin = rootBone.getRelOrigin();
 
+        Triple rootOrigin = rootBone.getRelOrigin().clone();
+        rootOrigin.invert();
+        rootOrigin.setY(-rootOrigin.y);
+        rootOrigin.divide(16);
+
+        MultiItemDisplayEngine.plugin.getLogger().info("Rotation: " + rotation.toString());
 
         for (Bone bone : rootBone.getAllChildrenBones(true)) {
             if (!bone.hasElement()) {continue;}
-            ItemDisplay itemDisplay = bone.getItemDisplay();
-            Location currentLocation = itemDisplay.getLocation();
-            Triple translation = new Triple(rootOrigin.x-currentLocation.x(),rootOrigin.y-currentLocation.y(),rootOrigin.z-currentLocation.z());
+
+            Triple currentRelOrigin = bone.getRelOrigin();
+            currentRelOrigin.invert();
+            currentRelOrigin.setY(-rootOrigin.y);
+            currentRelOrigin.divide(16);
+
+            Triple translation = Triple.difference(currentRelOrigin, rootOrigin);
             SetBoneRotationAroundRelativeSmooth(bone, translation, rotation, interpolationDuration);
         }
     }

@@ -21,6 +21,38 @@ public class Triple {
         return new Triple(x, y, z);
     }
 
+    @Override
+    public String toString() {
+        return "Triple{" + "x=" + x + ", y=" + y + ", z=" + z + '}';
+    }
+
+    /**
+     *
+     * Converts all values in this to Radians assuming they're degrees (multiplies by pi/180).
+     *
+     * @return A new triple with the converted values.
+     */
+    public Triple toRadians() {
+        x = Math.toRadians(x);
+        y = Math.toRadians(y);
+        z = Math.toRadians(z);
+        return new Triple(x, y, z);
+    }
+
+    /**
+     *
+     * Uses the modulo operator on each double in this triple using a double m
+     *
+     * @param m The number modulo by.
+     * @return The remainder as a new Triple. (the result)
+     */
+    public Triple modulo(double m){
+        this.x = (x % m);
+        this.y = (y % m);
+        this.z = (z % m);
+        return new Triple(x, y, z);
+    }
+
     /**
      *
      * Makes a new triple of the x, y and z coordinates in a location
