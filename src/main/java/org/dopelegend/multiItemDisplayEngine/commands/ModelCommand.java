@@ -6,9 +6,11 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.generator.TexturePack;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
+import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
@@ -25,6 +27,14 @@ public class ModelCommand {
 
         itemDisplayGroup.playAnimation("animation");
 
+
+        // Meget smuk rotation :D, vi skal måske lige finde ud af om vi vil gøre det på den måde jeg gør det (dele tingen op til mindre rotationer hver tick.).
+//        new BukkitRunnable() {
+//            @Override
+//            public void run() {
+//                itemDisplayGroup.addRotationSmooth(new Triple(0, 180, 0), 20);
+//            }
+//        }.runTaskTimer(MultiItemDisplayEngine.plugin, 0L, 20L);
 
         return 1;
     }

@@ -379,9 +379,24 @@ public class ItemDisplayGroup {
      * @param rotation The rotation to add as an euler angle (3 angles) in degrees (360)
      */
     public void addRotationSmooth(Triple rotation, int interpolationDuration){
-        RotateSmooth.AddRotationItemDisplayGroupSmooth(this, rotation, interpolationDuration);
-        Triple oldRotation = this.getRotationInEulerAngles();
-        this.setRotationInEulerAngles(new Triple(oldRotation.x+ rotation.x, oldRotation.y+rotation.y, oldRotation.z+rotation.z));
+        ItemDisplayGroup itemDisplayGroup = this;
+        Triple subdividedRotation = rotation.clone().divide(interpolationDuration);
+        new BukkitRunnable() {
+
+            int counter = 0;
+
+            @Override
+            public void run() {
+                if(counter >= interpolationDuration){
+                    this.cancel();
+                    return;
+                }
+                counter++;
+                RotateSmooth.AddRotationItemDisplayGroupSmooth(itemDisplayGroup, subdividedRotation, 1);
+                Triple oldRotation = itemDisplayGroup.getRotationInEulerAngles();
+                itemDisplayGroup.setRotationInEulerAngles(new Triple(oldRotation.x+ subdividedRotation.x, oldRotation.y+subdividedRotation.y, oldRotation.z+subdividedRotation.z));
+            }
+        }.runTaskTimer(MultiItemDisplayEngine.plugin, 0L, 1);
     }
 
     public double GetYaw() {

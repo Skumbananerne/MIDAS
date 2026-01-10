@@ -25,7 +25,7 @@ public class RotateSmooth {
             bone.getItemDisplay().setInterpolationDelay(0);
         }
 
-        itemDisplayGroup.setRotation(rotation);
+        Rotate.SetRotationItemDisplayGroup(itemDisplayGroup, rotation);
     }
 
     /**
@@ -39,11 +39,11 @@ public class RotateSmooth {
     public static void AddRotationItemDisplayGroupSmooth(ItemDisplayGroup itemDisplayGroup, Triple rotation, int interpolationDuration) {
         for (Bone bone : itemDisplayGroup.getRootBone().getAllChildrenBones(true)){
             if(!bone.hasElement()) continue;
-            bone.getItemDisplay().setInterpolationDuration(interpolationDuration);
             bone.getItemDisplay().setInterpolationDelay(0);
+            bone.getItemDisplay().setInterpolationDuration(interpolationDuration);
         }
 
-        itemDisplayGroup.addRotation(rotation);
+        Rotate.AddRotationItemDisplayGroup(itemDisplayGroup, rotation);
     }
 
     /**

@@ -2,6 +2,7 @@ package org.dopelegend.multiItemDisplayEngine.rotation;
 
 import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
+import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
@@ -22,12 +23,28 @@ public class Rotate {
         rotation.y = rotation.y % 360;
         rotation.z = rotation.z % 360;
 
+        Location pivotPoint = itemDisplayGroup.getPivotPoint();
+
         Bone rootBone = itemDisplayGroup.getRootBone();
+
+        // Loop through all bones
         for (Bone bone : rootBone.getAllChildrenBones(true)){
             if (!bone.hasElement()) continue;
             ItemDisplay itemDisplay = bone.getItemDisplay();
+
+            // Get offset to translate by.
+            Location itemDisplayLoc = itemDisplay.getLocation();
+            Triple offset = Triple.difference(itemDisplayLoc, pivotPoint);
+            Vector3f translation = offset.toVector3f();
+            Vector3f negTranslation = offset.invert().toVector3f();
+
+            // Create Matrix and apply rotation.
             Matrix4f currentMatrix = new Matrix4f();
+            currentMatrix.translate(translation);
             currentMatrix.rotateXYZ(new Vector3f((float) Math.toRadians(rotation.x), (float) Math.toRadians(rotation.y), (float) Math.toRadians(rotation.z)));
+            currentMatrix.translate(negTranslation);
+
+            // Apply matrix
             itemDisplay.setTransformationMatrix(currentMatrix);
         }
     }
