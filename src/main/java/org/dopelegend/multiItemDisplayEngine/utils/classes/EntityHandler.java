@@ -76,8 +76,6 @@ public class EntityHandler {
      */
     public void removeEntity(int entityID) {
         activeEntities.remove(entityID);
-        CraftWorld world = (CraftWorld) Bukkit.getWorlds().get(0);
-        world.getEntities()
     }
 
     /**
