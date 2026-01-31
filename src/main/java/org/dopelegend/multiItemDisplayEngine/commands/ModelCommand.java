@@ -5,17 +5,9 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
-import io.papermc.paper.registry.entry.RegistryEntryMeta;
-import net.minecraft.network.PacketProcessor;
-import net.minecraft.network.protocol.PacketType;
-import net.minecraft.network.protocol.PacketUtils;
-import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
-import net.minecraft.server.packs.repository.Pack;
-import net.minecraft.world.phys.Vec3;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
@@ -24,10 +16,12 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.generator.TexturePack;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketCreator;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketSender;
+import org.dopelegend.multiItemDisplayEngine.utils.classes.EntityHandler;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
 import java.io.File;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class ModelCommand {
@@ -37,21 +31,13 @@ public class ModelCommand {
             return 0;
         }
 
-        ClientboundAddEntityPacket myPacket = new ClientboundAddEntityPacket(
-                249387,
-                UUID.randomUUID(),
-                1,
-                1,
-                1,
-                1,
-                1,
-                net.minecraft.world.entity.EntityType.PIG,
-                0,
-                Vec3.ZERO,
-                1
-        );
-        CraftPlayer craftPlayer = (CraftPlayer) player;
-        craftPlayer.getHandle().connection.send(myPacket);
+        EntityHandler entityHandler = EntityHandler.getEntityHandler(player.getUniqueId());
+        int entityId = entityHandler.getID();
+
+        PacketSender.sendPacket(player, PacketCreator.addItemDisplayPacket(player.getLocation(), entityId));
+        PacketSender.sendPacket(player, PacketCreator.setItemDisplayDataPacket(entityId));
+
+
 
         if (ctx.getArgument("model name", String.class).equals("itemDisplayTest")){
             ItemDisplay itemDisplay = (ItemDisplay) player.getWorld().spawnEntity(new Location(player.getWorld(), 0.5, 100.5 ,0.5), EntityType.ITEM_DISPLAY);
