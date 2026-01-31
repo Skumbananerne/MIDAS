@@ -1,17 +1,21 @@
 package org.dopelegend.multiItemDisplayEngine.blockBench;
 
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.World;
+import net.minecraft.network.protocol.Packet;
+import org.bukkit.*;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Transformation;
+import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.movement.Teleport;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketCreator;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketSender;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.ItemDisplayPacketData;
 import org.dopelegend.multiItemDisplayEngine.rotation.Rotate;
+import org.dopelegend.multiItemDisplayEngine.utils.classes.EntityHandler;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 import org.joml.Vector3f;
 
@@ -37,14 +41,20 @@ public class Bone {
      */
     private Triple currentRotation;
 
-    private String UUID = "";
+    /**
+     * The entityID of the itemDisplay this is linked to.
+     */
+    private int entityID;
     private ItemDisplay itemDisplay;
+    private String UUID = "";
     private List<Bone> childrenBones;
     private Bone parentBone;
     private String modelName;
-    private
+    private ItemStack displayedItem;
+    private ItemDisplay pivotPointDisplay;
 
     boolean hasElement = false;
+    List<Player> renderingPlayers = new ArrayList<>();
 
     /**
      *
@@ -83,51 +93,70 @@ public class Bone {
         this.modelName = modelName;
         this.baseRotation = baseRotation;
         this.currentRotation = baseRotation;
+        this.displayedItem = createDisplayedItem();
     }
 
-    public void spawn(Triple originPosition, World world){
-        for(int i = 0; i < this.childrenBones.size(); i++){
-            this.childrenBones.get(i).spawn(originPosition, world);
+    private ItemStack createDisplayedItem(){
+        // Create base item
+        ItemStack itemDisplayItem = new ItemStack(Material.DIAMOND_BLOCK);
+
+        // Set model
+        NamespacedKey modelKey = new NamespacedKey("midas",  modelName + "/" + this.UUID);
+        ItemMeta meta = itemDisplayItem.getItemMeta();
+        meta.setItemModel(modelKey);
+        itemDisplayItem.setItemMeta(meta);
+
+        return itemDisplayItem;
+    }
+
+    public void render(Triple originPosition, Player player){
+        for(Bone bone : this.childrenBones){
+            bone.render(originPosition, player);
         }
-        if(this.hasElement && this.itemDisplay == null){
+        if(this.hasElement && !this.renderingPlayers.contains(player)){
             Triple spawnPosition = new Triple(
                     originPosition.x - (relPivot.x / 16),
                     originPosition.y + (relPivot.y / 16),
                     originPosition.z - (relPivot.z / 16)
             );
 
-            //spawn item display
-            this.itemDisplay = (ItemDisplay) world.spawnEntity(new Location(world, spawnPosition.x, spawnPosition.y, spawnPosition.z), EntityType.ITEM_DISPLAY);
 
-            ItemStack itemDisplayItem = new ItemStack(Material.DIAMOND_BLOCK);
-            //Set item model
-            NamespacedKey modelKey = new NamespacedKey("midas",  modelName + "/" + this.UUID);
-            ItemMeta meta = itemDisplayItem.getItemMeta();
-            meta.setItemModel(modelKey);
-            itemDisplayItem.setItemMeta(meta);
-            this.itemDisplay.setItemStack(itemDisplayItem);
+            int entityID = EntityHandler.getEntityHandler(player.getUniqueId()).getID();
 
-            resetRotation();
+            PacketSender.sendPacket(player, PacketCreator.addItemDisplayPacket(spawnPosition, entityID));
+            ItemDisplayPacketData data =  new ItemDisplayPacketData();
+            data.setDisplayedItem(this.displayedItem);
+            Bukkit.getScheduler().runTaskLater(MultiItemDisplayEngine.plugin, () -> {
+                PacketSender.sendPacket(player, PacketCreator.setItemDisplayDataPacket(data, entityID));
+            }, 1);
 
-            // Spawn pivot diamond BLOCK
-            ItemDisplay pivotPointDisplay = (ItemDisplay) world.spawnEntity(new Location(world, spawnPosition.x, spawnPosition.y, spawnPosition.z), EntityType.ITEM_DISPLAY);
-            Transformation oldTransform = pivotPointDisplay.getTransformation();
-            Transformation newTransform = new Transformation(
-                    oldTransform.getTranslation(),
-                    oldTransform.getLeftRotation(),
-                    new Vector3f(0.05f, 0.05f, 0.05f),
-                    oldTransform.getRightRotation()
-            );
-            pivotPointDisplay.setTransformation(newTransform);
-            ItemStack diamondBlock;
-            if (this.parentBone == null) {
-                diamondBlock = new ItemStack(Material.NETHERITE_BLOCK);
+            if (pivotPointDisplay == null){
+                World world = player.getWorld();
+                // Spawn pivot diamond BLOCK
+                pivotPointDisplay = (ItemDisplay) world.spawnEntity(new Location(world, spawnPosition.x, spawnPosition.y, spawnPosition.z), EntityType.ITEM_DISPLAY);
+
+                Transformation oldTransform = pivotPointDisplay.getTransformation();
+                Transformation newTransform = new Transformation(
+                        oldTransform.getTranslation(),
+                        oldTransform.getLeftRotation(),
+                        new Vector3f(0.05f, 0.05f, 0.05f),
+                        oldTransform.getRightRotation()
+                );
+                pivotPointDisplay.setTransformation(newTransform);
+                ItemStack diamondBlock;
+                if (this.parentBone == null) {
+                    diamondBlock = new ItemStack(Material.NETHERITE_BLOCK);
+                }
+                else {
+                    diamondBlock = new ItemStack(Material.DIAMOND_BLOCK);
+                }
+                pivotPointDisplay.setItemStack(diamondBlock);
             }
-            else {
-                diamondBlock = new ItemStack(Material.DIAMOND_BLOCK);
-            }
-            pivotPointDisplay.setItemStack(diamondBlock);
         }
+    }
+
+    public ItemDisplay getItemDisplay() {
+        return itemDisplay;
     }
 
     /**
@@ -193,7 +222,7 @@ public class Bone {
         this.UUID = UUID;
     }
 
-    public ItemDisplay getItemDisplay() {return this.itemDisplay;}
+    public int getEntityID() {return this.entityID;}
 
     public List<Bone> getChildrenBones() {
         return childrenBones;

@@ -18,6 +18,7 @@ import org.dopelegend.multiItemDisplayEngine.blockBench.generator.TexturePack;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketCreator;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketSender;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.ItemDisplayPacketData;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.EntityHandler;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
@@ -30,14 +31,6 @@ public class ModelCommand {
             ctx.getSource().getSender().sendRichMessage("<red> <bold> Only players can execute this command");
             return 0;
         }
-
-        EntityHandler entityHandler = EntityHandler.getEntityHandler(player.getUniqueId());
-        int entityId = entityHandler.getID();
-
-        PacketSender.sendPacket(player, PacketCreator.addItemDisplayPacket(player.getLocation(), entityId));
-        PacketSender.sendPacket(player, PacketCreator.setItemDisplayDataPacket(entityId));
-
-
 
         if (ctx.getArgument("model name", String.class).equals("itemDisplayTest")){
             ItemDisplay itemDisplay = (ItemDisplay) player.getWorld().spawnEntity(new Location(player.getWorld(), 0.5, 100.5 ,0.5), EntityType.ITEM_DISPLAY);
@@ -57,7 +50,7 @@ public class ModelCommand {
         ItemDisplayGroup itemDisplayGroup = new ItemDisplayGroup(new Location(player.getWorld(), 0.5, 100.5 ,0.5), ctx.getArgument("model name", String.class));
         itemDisplayGroup.spawn();
 
-        itemDisplayGroup.playAnimation("animation");
+        //itemDisplayGroup.playAnimation("animation");
 
         // Meget smuk rotation :D, vi skal måske lige finde ud af om vi vil gøre det på den måde jeg gør det (dele tingen op til mindre rotationer hver tick.).
         if (ctx.getArgument("model name", String.class).equals("jet")){

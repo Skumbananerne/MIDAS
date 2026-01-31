@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
@@ -26,11 +27,16 @@ import java.util.*;
  */
 public class ItemDisplayGroup {
 
+
+
     public enum AnimationState{RUNNING, HOLDING, PAUSED, FREE}
 
     //Class variables
-    private String groupUUID;
+    // TODO make this config based
+    private int viewRangeSquared = 128*128;
+    private List<Player> renderingPlayers = new ArrayList<>();
     private Location pivotPoint;
+    private UUID uuid;
     private Bone rootBone;
     private double yaw;
     private double pitch;
@@ -60,8 +66,8 @@ public class ItemDisplayGroup {
         this.yaw = 0;
         this.pitch = 0;
         this.roll = 0;
-        this.groupUUID = UUID.randomUUID().toString();
         this.animations = new HashMap<String, Animation>();
+        this.uuid = UUID.randomUUID();
     }
 
     /**
@@ -92,7 +98,7 @@ public class ItemDisplayGroup {
         this.yaw = 0;
         this.pitch = 0;
         this.roll = 0;
-        this.groupUUID = UUID.randomUUID().toString();
+        this.uuid = UUID.randomUUID();
 
         JsonObject rootJson = FileReader.getRootJsonObject(file);
         if (rootJson == null) {
@@ -124,7 +130,7 @@ public class ItemDisplayGroup {
      * @return Currently always returns true
      */
     public boolean spawn(){
-        rootBone.spawn(new Triple(this.pivotPoint.getX(), this.pivotPoint.getY(), this.pivotPoint.getZ()), this.pivotPoint.getWorld());
+        PacketUpdater.addActiveItemDisplayGroup(this);
         return true;
     }
 
@@ -339,6 +345,45 @@ public class ItemDisplayGroup {
         Teleport.teleportItemDisplayGroup(this, location);
     }
 
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    /**
+     *
+     * Adds some player to the renderingPlayers list
+     *
+     * @param player the player to add
+     */
+    private void addRenderingPlayer(Player player){
+        renderingPlayers.add(player);
+    }
+
+    private void removeRenderingPlayer(Player player){
+        renderingPlayers.remove(player);
+    }
+
+    /**
+     *
+     * Renders this itemDisplayGroup for a player, this will be called automatically when players enter the view range.
+     *
+     * @param player The player to render the itemDisplayGroup for.
+     */
+    public void render(Player player) {
+        this.getRootBone().render(new Triple(this.pivotPoint), player);
+        addRenderingPlayer(player);
+    }
+
+    /**
+     *
+     * Unrenders this itemDisplayGroup for a player.
+     *
+     * @param player The player to unrender this itemDisplayGroup for.
+     */
+    public void unrender(Player player) {
+        removeRenderingPlayer(player);
+    }
+
     /**
      *
      * Teleports this itemDisplayGroup by coordinates (x, y, z) relative to the pivotPoint of this itemDisplayGroup.
@@ -404,6 +449,16 @@ public class ItemDisplayGroup {
     public void setRotationSmooth(Triple rotation, int interpolationDuration){
         RotateSmooth.SetRotationItemDisplayGroupSmooth(this, rotation, interpolationDuration);
         this.setRotationInEulerAngles(rotation);
+    }
+
+    public void setViewRange(int viewRange){
+        this.viewRangeSquared = viewRange*viewRange;
+    }
+
+    public int getViewRange(){
+        double distanceSquared = viewRangeSquared;
+        double distance = Math.sqrt(distanceSquared);
+        return (int) distance;
     }
 
     /**

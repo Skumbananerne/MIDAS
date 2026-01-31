@@ -3,13 +3,8 @@ package org.dopelegend.multiItemDisplayEngine.utils.classes;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import org.bukkit.Bukkit;
-import org.bukkit.UnsafeValues;
-import org.bukkit.craftbukkit.CraftWorld;
-import org.bukkit.entity.Player;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * A util class for making sure each player has unique EID this should be used to get all EntityIDs for packets.
@@ -23,11 +18,8 @@ public class EntityHandler {
      * All currently used EIDs
      */
     private IntSet activeEntities;
-    /**
-     * The currentID, this is decremented on each use.
-     */
-    private int currentID;
 
+    private List<UUID> activeItemDisplayGroups = new ArrayList<>();
     /**
      *
      * Creates a new EntityHandler for this player. You should always try getting the players EntityHandler before making a new one.
@@ -35,7 +27,6 @@ public class EntityHandler {
      * @param uuid The uuid of the player this is linked to.
      */
     private EntityHandler(UUID uuid) {
-        currentID = Integer.MAX_VALUE;
         activeEntities = new IntOpenHashSet();
         entityHandlers.put(uuid, this);
     }
@@ -47,9 +38,7 @@ public class EntityHandler {
      * @return The entityID
      */
     public int getID() {
-        currentID--;
-        activeEntities.add(currentID);
-        return currentID;
+        return Bukkit.getUnsafe().nextEntityId();
     }
 
     /**
@@ -76,6 +65,22 @@ public class EntityHandler {
      */
     public void removeEntity(int entityID) {
         activeEntities.remove(entityID);
+    }
+
+    public List<UUID> getActiveItemDisplayGroups() {
+        return activeItemDisplayGroups;
+    }
+
+    public void setActiveItemDisplayGroups(List<UUID> activeItemDisplayGroups) {
+        this.activeItemDisplayGroups = activeItemDisplayGroups;
+    }
+
+    public void addActiveItemDisplayGroup(UUID uuid) {
+        activeItemDisplayGroups.add(uuid);
+    }
+
+    public void removeActiveItemDisplayGroup(UUID uuid) {
+        activeItemDisplayGroups.remove(uuid);
     }
 
     /**
