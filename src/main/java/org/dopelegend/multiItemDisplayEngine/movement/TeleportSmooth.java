@@ -3,6 +3,7 @@ package org.dopelegend.multiItemDisplayEngine.movement;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
@@ -79,5 +80,16 @@ public class TeleportSmooth {
             itemDisplay.setTeleportDuration(teleportDuration);
         }
         Teleport.teleportBoneRelativeWithChildren(rootBone, relativeCoords);
+    }
+
+    public static void TeleportSingleBoneItemDisplayGroupSmooth(Bone bone, Triple triple, int teleportDuration){
+
+        ItemDisplay itemDisplay  = bone.getItemDisplay();
+        Location location = itemDisplay.getLocation();
+        location.add(triple.x, triple.y,triple.z);
+        itemDisplay.setTeleportDuration(teleportDuration);
+        Bukkit.getScheduler().runTaskLater(MultiItemDisplayEngine.plugin, () -> {
+            itemDisplay.teleport(location);
+        }, 1);
     }
 }

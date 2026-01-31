@@ -115,19 +115,14 @@ public class Teleport {
      * @param relativeCoords The relative position you want to offset the bone and all of its children by.
      */
     public static void teleportBoneRelativeWithChildren(Bone rootBone, Triple relativeCoords) {
-
         Bukkit.getScheduler().runTaskLater(
-                MultiItemDisplayEngine.plugin,
-                () -> {
+                MultiItemDisplayEngine.plugin, () -> {
                     for (Bone bone : rootBone.getAllChildrenBones(true)) {
                         if (!bone.hasElement()) continue;
 
                         ItemDisplay itemDisplay = bone.getItemDisplay();
                         Location itemDisplayLoc = itemDisplay.getLocation();
                         itemDisplay.teleport(itemDisplayLoc.clone().add(relativeCoords.x, relativeCoords.y, relativeCoords.z));
-                        MultiItemDisplayEngine.plugin.getLogger().info("Teleport duration: "+itemDisplay.getTeleportDuration());
-
-                        itemDisplay.setTeleportDuration(0);
                     }
                 }, 1
         );

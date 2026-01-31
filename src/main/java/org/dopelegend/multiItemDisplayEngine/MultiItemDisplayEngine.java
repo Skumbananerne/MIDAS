@@ -1,5 +1,6 @@
     package org.dopelegend.multiItemDisplayEngine;
 
+    import net.minecraft.network.protocol.Packet;
     import org.bukkit.configuration.file.FileConfiguration;
     import org.bukkit.plugin.Plugin;
     import org.bukkit.plugin.java.JavaPlugin;
@@ -36,6 +37,8 @@
             }
 
             this.getServer().getPluginManager().registerEvents(new EventListener(), this);
+
+
         }
 
         @Override

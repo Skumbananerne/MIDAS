@@ -160,7 +160,6 @@ public class ItemDisplayGroup {
 
             for (int j = 0; j < keyFrames.size(); j++) {
                 KeyFrame keyFrame = keyFrames.get(j);
-                MultiItemDisplayEngine.plugin.getLogger().info("Task delay: "+Math.round(keyFrame.getTimeStamp() * 20));
                 int finalJ = j;
                 int finalI = i;
                 new BukkitRunnable(){
@@ -194,7 +193,6 @@ public class ItemDisplayGroup {
                                     relPos.divide(16);
 
                                     int smoothDuration = Math.round((validKeyframe.getTimeStamp() - keyFrame.getTimeStamp()) * 20);
-                                    MultiItemDisplayEngine.plugin.getLogger().info("Smooth duration: "+smoothDuration);
                                     TeleportSmooth.TeleportBoneRelativeWithChildrenSmooth(boneArray[finalI], relPos, smoothDuration);
                                 }
                                 break;
@@ -212,11 +210,11 @@ public class ItemDisplayGroup {
             public void run() {
                 if (mode == Animation.LoopMode.LOOP) {
                     animationState = AnimationState.FREE;
-                    resetBonesPosAndRot();
+                    //resetBonesPosAndRot();
                     playAnimation(animationName);
                 } else if (mode == Animation.LoopMode.ONCE) {
                     animationState = AnimationState.FREE;
-                    resetBonesPosAndRot();
+                    //resetBonesPosAndRot();
                 } else if (mode == Animation.LoopMode.HOLD) {
                     animationState = AnimationState.HOLDING;
                 }

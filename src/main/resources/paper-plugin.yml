@@ -2,3 +2,5 @@ name: multiItemDisplayEngine
 version: '1.0'
 main: org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine
 api-version: '1.21'
+depend:
+  - ProtocolLib
