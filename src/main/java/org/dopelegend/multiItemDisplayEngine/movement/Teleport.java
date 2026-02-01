@@ -1,11 +1,16 @@
 package org.dopelegend.multiItemDisplayEngine.movement;
 
+import net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket;
+import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Player;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketCreator;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketSender;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
 public class Teleport {
@@ -58,16 +63,26 @@ public class Teleport {
 
     /**
      *
-     * Teleports a single bone without the children.
+     * Teleports a single bone without the children. This also updates the bone's stored position.
      *
      * @param bone The bone to teleport
      * @param location The location to teleport the bone to
      */
     public static void teleportSingleBone(Bone bone, Location location) {
-        if (!bone.hasElement()) return;
-        ItemDisplay itemDisplay = bone.getItemDisplay();
-        itemDisplay.teleport(location);
-        itemDisplay.setTeleportDuration(0);
+        if (!bone.hasElement() || bone.getPosition()==null) return;
+
+        Triple targetLoc = new Triple(location);
+
+        Triple relCoords = Triple.difference(bone.getPosition(), targetLoc);
+        bone.setPosition(targetLoc);
+
+        ClientboundTeleportEntityPacket teleportPacket = PacketCreator.teleportEntityPacket(bone.getEntityID(), relCoords);
+
+
+        for (Player player : bone.getRenderingPlayers()){
+            if (!player.getWorld().equals(location.getWorld())) continue;
+            PacketSender.sendPacket(player, teleportPacket);
+        }
     }
 
     /**

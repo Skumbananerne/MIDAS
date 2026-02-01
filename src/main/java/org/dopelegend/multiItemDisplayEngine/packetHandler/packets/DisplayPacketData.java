@@ -11,8 +11,8 @@ import java.util.List;
 
 public class DisplayPacketData implements PacketData{
     int interpolationDelay = Integer.MIN_VALUE;
-    int positionInterpolationDuration = Integer.MIN_VALUE;
-    int rotationInterpolationDuration = Integer.MIN_VALUE;
+    int transformationInterpolationDuration = Integer.MIN_VALUE;
+    int teleportInterpolationDuration = Integer.MIN_VALUE;
 
     Vector3fc translation = null;
     Vector3fc scale = null;
@@ -40,20 +40,20 @@ public class DisplayPacketData implements PacketData{
         this.interpolationDelay = interpolationDelay;
     }
 
-    public int getPositionInterpolationDuration() {
-        return positionInterpolationDuration;
+    public int getTransformationInterpolationDuration() {
+        return transformationInterpolationDuration;
     }
 
-    public void setPositionInterpolationDuration(int positionInterpolationDuration) {
-        this.positionInterpolationDuration = positionInterpolationDuration;
+    public void setTransformationInterpolationDuration(int transformationInterpolationDuration) {
+        this.transformationInterpolationDuration = transformationInterpolationDuration;
     }
 
-    public int getRotationInterpolationDuration() {
-        return rotationInterpolationDuration;
+    public int getTeleportInterpolationDuration() {
+        return teleportInterpolationDuration;
     }
 
-    public void setRotationInterpolationDuration(int rotationInterpolationDuration) {
-        this.rotationInterpolationDuration = rotationInterpolationDuration;
+    public void setTeleportInterpolationDuration(int teleportInterpolationDuration) {
+        this.teleportInterpolationDuration = teleportInterpolationDuration;
     }
 
     public Vector3fc getTranslation() {
@@ -167,25 +167,25 @@ public class DisplayPacketData implements PacketData{
 
             data.add(item);
         }
-        if(positionInterpolationDuration != Integer.MIN_VALUE){
+        if(transformationInterpolationDuration != Integer.MIN_VALUE){
             EntityDataSerializer<Integer> serializer = EntityDataSerializers.INT;
 
             SynchedEntityData.DataValue<Integer> item =
                     new SynchedEntityData.DataValue<>(
                             9,
                             serializer,
-                            positionInterpolationDuration);
+                            transformationInterpolationDuration);
 
             data.add(item);
         }
-        if(rotationInterpolationDuration != Integer.MIN_VALUE){
+        if(teleportInterpolationDuration != Integer.MIN_VALUE){
             EntityDataSerializer<Integer> serializer = EntityDataSerializers.INT;
 
             SynchedEntityData.DataValue<Integer> item =
                     new SynchedEntityData.DataValue<>(
                             10,
                             serializer,
-                            rotationInterpolationDuration);
+                            teleportInterpolationDuration);
 
             data.add(item);
         }

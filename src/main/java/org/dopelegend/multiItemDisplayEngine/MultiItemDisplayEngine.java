@@ -12,6 +12,7 @@
     import org.dopelegend.multiItemDisplayEngine.commands.ModelCommand;
     import org.dopelegend.multiItemDisplayEngine.files.generate.FileStructure;
     import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.PacketUpdater;
+    import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketCreator;
     import org.dopelegend.multiItemDisplayEngine.texturePack.PackWebServer;
 
     import java.io.IOException;

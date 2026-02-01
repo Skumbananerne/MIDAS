@@ -30,7 +30,7 @@ public class PacketUpdater {
                     boolean isActive = entityHandler.getActiveItemDisplayGroups().contains(itemDisplayGroup.getUuid());
 
 
-                    if (playerlocation.distanceSquared(itemDisplayGroup.getPivotPoint())<itemDisplayGroup.getViewRange()){
+                    if (playerlocation.distanceSquared(itemDisplayGroup.getPivotPoint())<itemDisplayGroup.getViewRangeSquared()){
                         if (!isActive) {
                             itemDisplayGroup.render(player);
                             entityHandler.addActiveItemDisplayGroup(itemDisplayGroup.getUuid());

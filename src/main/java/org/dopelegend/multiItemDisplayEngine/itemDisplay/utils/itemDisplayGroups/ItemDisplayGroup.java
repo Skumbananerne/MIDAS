@@ -17,6 +17,7 @@ import org.dopelegend.multiItemDisplayEngine.movement.TeleportSmooth;
 import org.dopelegend.multiItemDisplayEngine.movement.Teleport;
 import org.dopelegend.multiItemDisplayEngine.rotation.Rotate;
 import org.dopelegend.multiItemDisplayEngine.rotation.RotateSmooth;
+import org.dopelegend.multiItemDisplayEngine.utils.classes.EntityHandler;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
 import java.io.File;
@@ -25,9 +26,9 @@ import java.util.*;
 /**
  * A group of ItemDisplays that are connected, that way you can move and rotate them around a center without their relative position to each other breaking.
  */
-public class ItemDisplayGroup {
+    public class ItemDisplayGroup {
 
-
+    static List<ItemDisplayGroup> allItemDisplayGroups = new ArrayList<>();
 
     public enum AnimationState{RUNNING, HOLDING, PAUSED, FREE}
 
@@ -58,6 +59,8 @@ public class ItemDisplayGroup {
      *
      */
     public ItemDisplayGroup(Location pivotPoint, Bone rootBone) {
+        allItemDisplayGroups.add(this);
+
         if (pivotPoint == null || rootBone == null) {
             throw new IllegalArgumentException("Display groups cannot be intialized with null or empty values.");
         }
@@ -77,6 +80,8 @@ public class ItemDisplayGroup {
      *
      */
     public ItemDisplayGroup(Location pivotPoint, String modelName) {
+        allItemDisplayGroups.add(this);
+
         // TODO make a map with predefined ItemDisplayGroupBlueprints and check against that before recomputing everything.
         if (pivotPoint == null || modelName == null || modelName.isEmpty()) {
             throw new IllegalArgumentException("Display groups cannot be intialized with null or empty values.");
@@ -130,7 +135,19 @@ public class ItemDisplayGroup {
      * @return Currently always returns true
      */
     public boolean spawn(){
+        this.rootBone.syncPositionToDisplayGroup(new Triple(pivotPoint));
         PacketUpdater.addActiveItemDisplayGroup(this);
+        return true;
+    }
+
+    public boolean destroy(){
+        allItemDisplayGroups.remove(this);
+        PacketUpdater.removeActiveItemDisplayGroup(this);
+        List<Player> renderingPlayersClone = new ArrayList<>(renderingPlayers);
+        for(Player player : renderingPlayersClone){
+            EntityHandler.getEntityHandler(player.getUniqueId()).removeActiveItemDisplayGroup(uuid);
+            unrender(player);
+        }
         return true;
     }
 
@@ -230,111 +247,6 @@ public class ItemDisplayGroup {
         return true;
     }
 
-
-//    public boolean playAnimation(String animationName){
-//        if (!this.animations.containsKey(animationName)) return false;
-//        if (animationState == AnimationState.RUNNING) return false;
-//
-//        if(animationState == AnimationState.PAUSED || animationState == AnimationState.HOLDING){
-//            resetBonesPosAndRot();
-//        }
-//
-//        animationState = AnimationState.RUNNING;
-//
-//        Animation animation = this.animations.get(animationName);
-//        Map<Bone, List<KeyFrame>> keyframes = animation.getKeyFrames();
-//
-//        Animation.LoopMode mode = animation.getLoopMode();
-//        Bone[] boneArray = keyframes.keySet().toArray(new Bone[0]);
-//
-//        for (int i = 0; i < boneArray.length; i++) {
-//            List<KeyFrame> allBoneKeyFrames = keyframes.get(boneArray[i]);
-//            List<List<KeyFrame>> sortedKeyframes = new ArrayList<>();
-//
-//            float lastTiming = 0;
-//            List<KeyFrame> tempKeyframeList = new ArrayList<>();
-//            for(KeyFrame keyFrame : allBoneKeyFrames){
-//                if(keyFrame.getTimeStamp() > lastTiming){
-//                    if(!tempKeyframeList.isEmpty()) sortedKeyframes.add(tempKeyframeList);
-//                    tempKeyframeList = new ArrayList<>();
-//                    lastTiming = keyFrame.getTimeStamp();
-//                    tempKeyframeList.add(keyFrame);
-//                }
-//                else {
-//                    tempKeyframeList.add(keyFrame);
-//                }
-//            }
-//
-//            if(!tempKeyframeList.isEmpty()) sortedKeyframes.add(tempKeyframeList);
-//
-//            int finalI = i;
-//            int finalAnimationDuration = Math.round(animation.getLength()) * 20;
-//            new BukkitRunnable(){
-//                int j = 0;
-//                int currentDuration = 0;
-//                boolean stop;
-//
-//                int tickDelayRotation = 0;
-//                int tickDelayPosition = 0;
-//                int tickDelayStop = 0;
-//                @Override
-//                public void run() {
-//                    if(tickDelayStop != 0){
-//                        tickDelayStop--;
-//                        return;
-//                    };
-//                    if(stop){
-//                        cancel();
-//                        if(mode == Animation.LoopMode.LOOP){
-//                            if(finalI == boneArray.length-1){
-//                                animationState = AnimationState.FREE;
-//
-//                                resetBonesPosAndRot();
-//                                playAnimation(animationName);
-//                            }
-//                        }
-//                        else if (mode == Animation.LoopMode.ONCE){
-//                            animationState = AnimationState.FREE;
-//                            resetBonesPosAndRot();
-//                        }
-//                        else if (mode == Animation.LoopMode.HOLD){
-//                            animationState = AnimationState.HOLDING;
-//                        }
-//                        return;
-//                    }
-//                    if (j < sortedKeyframes.size()) {
-//                        if(tickDelayPosition == 0 || tickDelayRotation == 0){
-//                            int loopDuration = 0;
-//                            if (j < sortedKeyframes.size() - 1) {
-//                                KeyFrame keyFrame = sortedKeyframes.get(j).getFirst();
-//                                loopDuration = Math.round((sortedKeyframes.get(j + 1).getFirst().getTimeStamp() - keyFrame.getTimeStamp()) * 20);
-//                            }
-//                            boolean updated = false;
-//                            for (KeyFrame keyFrame : sortedKeyframes.get(j)) {
-//
-//                                }
-//                            }
-//
-//                            if(updated){
-//                                currentDuration += loopDuration;
-//                                j++;
-//                            }
-//                        }
-//                        if(tickDelayPosition > 0) tickDelayPosition -= 1;
-//                        if(tickDelayRotation > 0) tickDelayRotation -= 1;
-//
-//                    } else {
-//                        tickDelayStop = (finalAnimationDuration - currentDuration) + 1;
-//                        stop = true;
-//                    }
-//
-//                }
-//            }.runTaskTimer(MultiItemDisplayEngine.plugin, 0L, 1);
-//        }
-//
-//        return true;
-//    }
-
     /**
      *
      * Teleports this itemDisplayGroup to some Location, this doesn't affect the rotation of the itemDisplayGroup
@@ -381,6 +293,7 @@ public class ItemDisplayGroup {
      * @param player The player to unrender this itemDisplayGroup for.
      */
     public void unrender(Player player) {
+        this.getRootBone().unrender(player);
         removeRenderingPlayer(player);
     }
 
@@ -461,6 +374,10 @@ public class ItemDisplayGroup {
         return (int) distance;
     }
 
+    public int getViewRangeSquared(){
+        return viewRangeSquared;
+    }
+
     /**
      *
      * Smoothly adds some rotation to the whole itemDisplayGroup, using 4x4 matrices.
@@ -533,5 +450,25 @@ public class ItemDisplayGroup {
 
     public void setAnimationState(AnimationState animationState) {
         this.animationState = animationState;
+    }
+
+    public static List<UUID> getAllUuids(){
+        List<UUID> out = new ArrayList<>();
+        for(ItemDisplayGroup group : allItemDisplayGroups){
+            out.add(group.getUuid());
+        }
+
+        return out;
+    }
+    public static ItemDisplayGroup getItemDisplayGroup(UUID uuid){
+        for(ItemDisplayGroup group : allItemDisplayGroups){
+            if(group.getUuid().equals(uuid)) return group;
+        }
+
+        return null;
+    }
+
+    public static List<ItemDisplayGroup> getAllItemDisplayGroups(){
+        return allItemDisplayGroups;
     }
 }

@@ -1,7 +1,5 @@
 package org.dopelegend.multiItemDisplayEngine.utils.classes;
 
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
 import org.bukkit.Bukkit;
 
 import java.util.*;
@@ -14,10 +12,6 @@ public class EntityHandler {
      * A map of all entityHandlers indexed by the players UUID
      */
     private static Map<UUID, EntityHandler> entityHandlers = new HashMap<>();
-    /**
-     * All currently used EIDs
-     */
-    private IntSet activeEntities;
 
     private List<UUID> activeItemDisplayGroups = new ArrayList<>();
     /**
@@ -27,7 +21,6 @@ public class EntityHandler {
      * @param uuid The uuid of the player this is linked to.
      */
     private EntityHandler(UUID uuid) {
-        activeEntities = new IntOpenHashSet();
         entityHandlers.put(uuid, this);
     }
 
@@ -42,13 +35,6 @@ public class EntityHandler {
     }
 
     /**
-     * Removes all entities. This should only be used when removing the handler.
-     */
-    public void removeAllEntities() {
-        activeEntities.clear();
-    }
-
-    /**
      * Removes a EntityHandler.
      *
      * @param uuid The uuid of the player this entityHandler is linked to.
@@ -57,15 +43,6 @@ public class EntityHandler {
         entityHandlers.remove(uuid);
     }
 
-    /**
-     *
-     * Removes an Entity.
-     *
-     * @param entityID The id of the entity to remove.
-     */
-    public void removeEntity(int entityID) {
-        activeEntities.remove(entityID);
-    }
 
     public List<UUID> getActiveItemDisplayGroups() {
         return activeItemDisplayGroups;
@@ -81,16 +58,6 @@ public class EntityHandler {
 
     public void removeActiveItemDisplayGroup(UUID uuid) {
         activeItemDisplayGroups.remove(uuid);
-    }
-
-    /**
-     *
-     * Gets all active entities for this EntityHandler.
-     *
-     * @return An int array with all the active entities.
-     */
-    public int[] getActiveEntities() {
-        return activeEntities.toIntArray();
     }
 
     /**

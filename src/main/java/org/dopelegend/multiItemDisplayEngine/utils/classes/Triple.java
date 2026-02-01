@@ -1,5 +1,6 @@
 package org.dopelegend.multiItemDisplayEngine.utils.classes;
 
+import net.minecraft.world.phys.Vec3;
 import org.bukkit.Location;
 import org.joml.Vector3f;
 
@@ -14,6 +15,13 @@ public class Triple {
         this.z = z;
     }
 
+    /**
+     *
+     * Subtracts a triple from this triple.
+     *
+     * @param triple The triple to subtract.
+     * @return A new copy with the triple subtracted (both copies will have the operation done).
+     */
     public Triple remove(Triple triple) {
         this.x -= triple.x;
         this.y -= triple.y;
@@ -24,6 +32,16 @@ public class Triple {
     @Override
     public String toString() {
         return "Triple{" + "x=" + x + ", y=" + y + ", z=" + z + '}';
+    }
+
+    /**
+     * 
+     * Makes a Vec3 (Minecraft 3d vector).
+     * 
+     * @return The new Vec3
+     */
+    public Vec3 toVec3(){
+        return new Vec3(x, y, z);
     }
 
     /**

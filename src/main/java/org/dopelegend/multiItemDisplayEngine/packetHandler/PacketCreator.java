@@ -1,22 +1,15 @@
 package org.dopelegend.multiItemDisplayEngine.packetHandler;
 
-import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
-import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
-import net.minecraft.network.syncher.EntityDataSerializer;
-import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.entity.PositionMoveRotation;
+import net.minecraft.world.entity.Relative;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.entity.Entity;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.ItemDisplayPacketData;
-import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.PacketData;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
-import org.joml.Quaternionf;
-import org.joml.Quaternionfc;
-import org.joml.Vector3fc;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -47,14 +40,43 @@ public class PacketCreator {
         );
     }
 
+    /**
+     *
+     * Creates a ClientBoundSetEntityDataPacket, specifically for itemDisplays.
+     *
+     * @param packetData An ItemDisplayPacketData with any data you want send.
+     * @param entityID The id of the entity to change the data for.
+     * @return The ClientBoundSetEntityDataPacket
+     */
     public static ClientboundSetEntityDataPacket setItemDisplayDataPacket(ItemDisplayPacketData packetData, int entityID) {
-
-
-        List<SynchedEntityData.DataValue<?>> data = new ArrayList<>(packetData.getPacketData());
+        List<SynchedEntityData.DataValue<?>> data = packetData.getPacketData();
 
         return new ClientboundSetEntityDataPacket(
             entityID,
                 data
+        );
+    }
+
+    /**
+     *
+     * Creates a RemoveEntitiesPacket for a intList of Entity IDs.
+     *
+     * @param entityIDs The entityIDs to create the packet with.
+     * @return The packet
+     */
+    public static ClientboundRemoveEntitiesPacket removeItemDisplaysPacket(int... entityIDs) {
+        return new ClientboundRemoveEntitiesPacket(entityIDs);
+    }
+
+
+    public static ClientboundTeleportEntityPacket teleportEntityPacket(int entityID, Triple relCoords){
+        PositionMoveRotation pos = new PositionMoveRotation(relCoords.toVec3(), Vec3.ZERO, 0, 0);
+
+        return new ClientboundTeleportEntityPacket(
+            entityID,
+            pos,
+            Relative.ALL,
+                false
         );
     }
 }

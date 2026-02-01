@@ -8,6 +8,8 @@ import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.plugin.Plugin;
 
+import static org.dopelegend.multiItemDisplayEngine.commands.ModelCommand.deleteItemDisplayGroup;
+
 public class CommandListener {
 
     public CommandListener(Plugin plugin) {
@@ -25,6 +27,13 @@ public class CommandListener {
                         .then(Commands.argument("model name", StringArgumentType.greedyString())
                                 .suggests(ModelCommand::suggestModels)
                                 .executes(ModelCommand::spawnModelByNameCommand)
+                        )
+                )
+                .then(Commands.literal("clear")
+                        .executes(ctx -> {return deleteItemDisplayGroup(ctx, false);})
+                        .then(Commands.argument("group uuid", StringArgumentType.greedyString())
+                                .suggests(ModelCommand::suggestGroupUuid)
+                                .executes(ctx -> {return deleteItemDisplayGroup(ctx, true);})
                         )
                 )
                 .then(Commands.literal("texturepack")

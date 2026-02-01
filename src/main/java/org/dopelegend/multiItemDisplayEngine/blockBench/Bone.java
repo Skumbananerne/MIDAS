@@ -1,6 +1,5 @@
 package org.dopelegend.multiItemDisplayEngine.blockBench;
 
-import net.minecraft.network.protocol.Packet;
 import org.bukkit.*;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
@@ -15,7 +14,6 @@ import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketCreator;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketSender;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.ItemDisplayPacketData;
 import org.dopelegend.multiItemDisplayEngine.rotation.Rotate;
-import org.dopelegend.multiItemDisplayEngine.utils.classes.EntityHandler;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 import org.joml.Vector3f;
 
@@ -31,6 +29,9 @@ import java.util.List;
  */
 public class Bone {
 
+    /**
+     * The relative pivot point of this bone in 16ths of a block compared to the center of the ItemDisplayGroup, it's linked to.
+     */
     private Triple relPivot;
     /**
      * This is the base rotation of this bone found from the .bbmodel file. This usually isn't what you want to change (look at currentRotation)
@@ -52,6 +53,11 @@ public class Bone {
     private String modelName;
     private ItemStack displayedItem;
     private ItemDisplay pivotPointDisplay;
+
+    /**
+     * The world coordinates of this position.
+     */
+    private Triple position;
 
     boolean hasElement = false;
     List<Player> renderingPlayers = new ArrayList<>();
@@ -94,6 +100,7 @@ public class Bone {
         this.baseRotation = baseRotation;
         this.currentRotation = baseRotation;
         this.displayedItem = createDisplayedItem();
+        this.entityID = Bukkit.getUnsafe().nextEntityId();
     }
 
     private ItemStack createDisplayedItem(){
@@ -109,6 +116,26 @@ public class Bone {
         return itemDisplayItem;
     }
 
+    /**
+     * Syncs the stored position of this bone and all of its child bones to the ItemDisplayGroup.
+     * This doesn't actually move visually,
+     * and should only be called inside the MIDAS plugin when spawning an ItemDisplayGroup.
+     *
+     * @param originPosition The originPosition (pivotPoint) of the itemDisplayGroup
+     */
+    public void syncPositionToDisplayGroup(Triple originPosition){
+        for (Bone bone : childrenBones) {
+            bone.syncPositionToDisplayGroup(originPosition);
+        }
+        if (!this.hasElement) {return;}
+
+        position = new Triple(
+                originPosition.x - (relPivot.x / 16),
+                originPosition.y + (relPivot.y / 16),
+                originPosition.z - (relPivot.z / 16)
+        );
+    }
+
     public void render(Triple originPosition, Player player){
         for(Bone bone : this.childrenBones){
             bone.render(originPosition, player);
@@ -120,8 +147,7 @@ public class Bone {
                     originPosition.z - (relPivot.z / 16)
             );
 
-
-            int entityID = EntityHandler.getEntityHandler(player.getUniqueId()).getID();
+            this.renderingPlayers.add(player);
 
             PacketSender.sendPacket(player, PacketCreator.addItemDisplayPacket(spawnPosition, entityID));
             ItemDisplayPacketData data =  new ItemDisplayPacketData();
@@ -153,6 +179,19 @@ public class Bone {
                 pivotPointDisplay.setItemStack(diamondBlock);
             }
         }
+    }
+
+    public void unrender(Player player){
+        for(Bone bone : this.childrenBones){
+            bone.unrender(player);
+        }
+
+        if(!this.hasElement || !this.renderingPlayers.contains(player)){
+            return;
+        }
+        PacketSender.sendPacket(player,
+                PacketCreator.removeItemDisplaysPacket(entityID));
+        this.renderingPlayers.remove(player);
     }
 
     public ItemDisplay getItemDisplay() {
@@ -257,6 +296,18 @@ public class Bone {
 
     public void setBaseRotation(Triple baseRotation) {
         this.baseRotation = baseRotation;
+    }
+
+    public List<Player> getRenderingPlayers() {
+        return renderingPlayers;
+    }
+
+    public Triple getPosition() {
+        return position;
+    }
+
+    public void setPosition(Triple position) {
+        this.position = position;
     }
 
     public Triple getCurrentRotation() {

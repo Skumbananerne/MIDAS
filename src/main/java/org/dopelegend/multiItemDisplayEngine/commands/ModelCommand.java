@@ -16,6 +16,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.generator.TexturePack;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
+import org.dopelegend.multiItemDisplayEngine.movement.TeleportSmooth;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketCreator;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketSender;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.ItemDisplayPacketData;
@@ -23,6 +24,9 @@ import org.dopelegend.multiItemDisplayEngine.utils.classes.EntityHandler;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class ModelCommand {
@@ -32,36 +36,22 @@ public class ModelCommand {
             return 0;
         }
 
-        if (ctx.getArgument("model name", String.class).equals("itemDisplayTest")){
-            ItemDisplay itemDisplay = (ItemDisplay) player.getWorld().spawnEntity(new Location(player.getWorld(), 0.5, 100.5 ,0.5), EntityType.ITEM_DISPLAY);
-            ItemStack diamondBlock = new ItemStack(Material.DIAMOND_BLOCK);
-            itemDisplay.setItemStack(diamondBlock);
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    testTeleport(itemDisplay);
-                }
-            }.runTaskTimer(MultiItemDisplayEngine.plugin, 0, 61);
-            return 1;
-        }
-
-        
-
-        ItemDisplayGroup itemDisplayGroup = new ItemDisplayGroup(new Location(player.getWorld(), 0.5, 100.5 ,0.5), ctx.getArgument("model name", String.class));
+        ItemDisplayGroup itemDisplayGroup = new ItemDisplayGroup(new Location(player.getWorld(), 0.5, 1.5 ,0.5), ctx.getArgument("model name", String.class));
         itemDisplayGroup.spawn();
 
+
+        Location teleportLoc = new Location(player.getWorld(), 0.5, 1.5 ,0.5);
         //itemDisplayGroup.playAnimation("animation");
 
         // Meget smuk rotation :D, vi skal måske lige finde ud af om vi vil gøre det på den måde jeg gør det (dele tingen op til mindre rotationer hver tick.).
-        if (ctx.getArgument("model name", String.class).equals("jet")){
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    itemDisplayGroup.teleportRelativeSmooth(new Triple(0, 0, -1), 5);
-                    itemDisplayGroup.addRotationSmooth(new Triple(0, 0, -30), 5);
-                }
-            }.runTaskTimer(MultiItemDisplayEngine.plugin, 0L, 5L);
-        }
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                teleportLoc.add(0,0,1);
+                TeleportSmooth.TeleportSingleBoneSmooth(itemDisplayGroup.getRootBone(), teleportLoc, 20);
+            }
+        }.runTaskTimer(MultiItemDisplayEngine.plugin, 0L, 20L);
+
 
         return 1;
     }
@@ -94,11 +84,31 @@ public class ModelCommand {
 
     public static int generateTexturePack(CommandContext<CommandSourceStack> ctx) {
         if (!(ctx.getSource().getSender() instanceof Player)){
-            ctx.getSource().getSender().sendRichMessage("<red> <bold> Only players can execute this command");
+            ctx.getSource().getSender().sendRichMessage("<red><bold>Only players can execute this command");
             return 0;
         }
         TexturePack.generateTexturePack();
         MultiItemDisplayEngine.packWebServer.reloadPackSnapshot();
+        return 1;
+    }
+
+    public static int deleteItemDisplayGroup(CommandContext<CommandSourceStack> ctx, boolean single) {
+        if(single){
+            UUID uuid = UUID.fromString(ctx.getArgument("group uuid", String.class));
+            ItemDisplayGroup group = ItemDisplayGroup.getItemDisplayGroup(uuid);
+
+            if(group != null){
+                group.destroy();
+                return 0;
+            }
+            ctx.getSource().getSender().sendRichMessage("<red><bold>Could not find a group with that uuid");
+        } else {
+            List<ItemDisplayGroup> groups = new ArrayList<>(ItemDisplayGroup.getAllItemDisplayGroups());
+            for(ItemDisplayGroup group : groups){
+                group.destroy();
+            }
+            return 0;
+        }
         return 1;
     }
 
@@ -113,6 +123,21 @@ public class ModelCommand {
             fileName = fileName.split("\\.")[0];
             if (fileName.startsWith(remaining)) {
                 builder.suggest(fileName);
+            }
+        }
+
+        return builder.buildFuture();
+    }
+
+    public static CompletableFuture<Suggestions> suggestGroupUuid(
+            CommandContext<CommandSourceStack> context,
+            SuggestionsBuilder builder
+    ) {
+        String remaining = builder.getRemaining().toLowerCase();
+
+        for (UUID uuid : ItemDisplayGroup.getAllUuids()) {
+            if (uuid.toString().startsWith(remaining)) {
+                builder.suggest(uuid.toString());
             }
         }
 
