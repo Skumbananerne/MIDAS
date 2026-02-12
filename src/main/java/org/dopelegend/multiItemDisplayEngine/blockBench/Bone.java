@@ -1,5 +1,6 @@
 package org.dopelegend.multiItemDisplayEngine.blockBench;
 
+import net.minecraft.world.level.biome.BiomeManager;
 import org.bukkit.*;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;

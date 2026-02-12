@@ -1,5 +1,6 @@
 package org.dopelegend.multiItemDisplayEngine.movement;
 
+import net.minecraft.network.protocol.game.ClientboundBundleDelimiterPacket;
 import net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket;
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
 import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
@@ -106,8 +107,8 @@ public class TeleportSmooth {
 
         for (Player player : bone.getRenderingPlayers()){
             if (!player.getWorld().equals(location.getWorld())) continue;
-            PacketSender.sendPacket(player, teleportPacket);
             PacketSender.sendPacket(player, entityDataPacket);
+            PacketSender.sendPacket(player, teleportPacket);
         }
     }
 }

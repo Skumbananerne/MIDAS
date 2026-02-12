@@ -57,6 +57,10 @@ public class PacketCreator {
         );
     }
 
+    public static ClientboundBundleDelimiterPacket bundleDelimiterPacket() {
+        return new ClientboundBundleDelimiterPacket();
+    }
+
     /**
      *
      * Creates a RemoveEntitiesPacket for a intList of Entity IDs.
@@ -71,6 +75,8 @@ public class PacketCreator {
 
     public static ClientboundTeleportEntityPacket teleportEntityPacket(int entityID, Triple relCoords){
         PositionMoveRotation pos = new PositionMoveRotation(relCoords.toVec3(), Vec3.ZERO, 0, 0);
+
+
 
         return new ClientboundTeleportEntityPacket(
             entityID,
