@@ -11,7 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class PacketUpdater {
-    private static List<ItemDisplayGroup> activeItemDisplayGroups = new ArrayList<>();
+    private static final List<ItemDisplayGroup> activeItemDisplayGroups = new ArrayList<>();
     private static PacketUpdater instance = null;
 
     /**
@@ -20,32 +20,41 @@ public class PacketUpdater {
     private PacketUpdater() {
 
         Bukkit.getScheduler().runTaskTimer(MultiItemDisplayEngine.plugin, () -> {
+            for (ItemDisplayGroup itemDisplayGroup : activeItemDisplayGroups) {
+                renderItemDisplayGroup(itemDisplayGroup);
+            }
 
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                Location playerlocation = player.getLocation();
-                EntityHandler entityHandler = EntityHandler.getEntityHandler(player.getUniqueId());
-                for (ItemDisplayGroup itemDisplayGroup : activeItemDisplayGroups) {
-                    if (playerlocation.getWorld() != itemDisplayGroup.getPivotPoint().getWorld()) continue;
+        }, 5, 1);
 
-                    boolean isActive = entityHandler.getActiveItemDisplayGroups().contains(itemDisplayGroup.getUuid());
+    }
+
+    /**
+     *
+     * Renders an ItemDisplayGroup for all players that meet the requirements (in range, in world, not already rendering, etc.)
+     *
+     * @param itemDisplayGroup The ItemDisplayGroup to render.
+     */
+    private static void renderItemDisplayGroup(ItemDisplayGroup itemDisplayGroup){
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            Location playerlocation = player.getLocation();
+            EntityHandler entityHandler = EntityHandler.getEntityHandler(player.getUniqueId());
+            if (playerlocation.getWorld() != itemDisplayGroup.getPivotPoint().getWorld()) continue;
+
+            boolean isRendered = entityHandler.getActiveItemDisplayGroups().contains(itemDisplayGroup.getUuid());
 
 
-                    if (playerlocation.distanceSquared(itemDisplayGroup.getPivotPoint())<itemDisplayGroup.getViewRangeSquared()){
-                        if (!isActive) {
-                            itemDisplayGroup.render(player);
-                            entityHandler.addActiveItemDisplayGroup(itemDisplayGroup.getUuid());
-                        }
-                    }
-                    else {
-                        if (isActive) {
-                            itemDisplayGroup.unrender(player);
-                            entityHandler.removeActiveItemDisplayGroup(itemDisplayGroup.getUuid());
-                        }
-                    }
+            if (playerlocation.distanceSquared(itemDisplayGroup.getPivotPoint()) < itemDisplayGroup.getViewRangeSquared()) {
+                if (!isRendered) {
+                    itemDisplayGroup.render(player);
+                    entityHandler.addActiveItemDisplayGroup(itemDisplayGroup.getUuid());
+                }
+            } else {
+                if (isRendered) {
+                    itemDisplayGroup.unrender(player);
+                    entityHandler.removeActiveItemDisplayGroup(itemDisplayGroup.getUuid());
                 }
             }
-                }, 5, 10);
-
+        }
     }
 
     /**
@@ -60,8 +69,16 @@ public class PacketUpdater {
         return  instance;
     }
 
+    /**
+     *
+     * Adds a new active ItemDisplayGroup to the PacketUpdater, meaning that it will render / unrender for players when needed.
+     * This function also immediately renders the ItemDisplayGroup for players in range
+     *
+     * @param itemDisplayGroup The ItemDisplayGroup to add
+     */
     public static void addActiveItemDisplayGroup(ItemDisplayGroup itemDisplayGroup) {
         activeItemDisplayGroups.add(itemDisplayGroup);
+        renderItemDisplayGroup(itemDisplayGroup);
     }
 
     public static void removeActiveItemDisplayGroup(ItemDisplayGroup itemDisplayGroup) {

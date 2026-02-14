@@ -34,7 +34,7 @@ import java.util.*;
 
     //Class variables
     // TODO make this config based
-    private int viewRangeSquared = 128*128;
+    private int viewRangeSquared = 10*10;
     private List<Player> renderingPlayers = new ArrayList<>();
     private Location pivotPoint;
     private UUID uuid;
@@ -42,6 +42,7 @@ import java.util.*;
     private double yaw;
     private double pitch;
     private double roll;
+    private boolean destroyed;
     private AnimationState animationState;
 
     /**
@@ -132,7 +133,7 @@ import java.util.*;
      *
      * Spawn this itemDisplayGroup at its pivot point (the rotation doesn't matter)
      * //TODO make it so this doesn't always return true, or make it not return anything
-     * @return Currently always returns true
+     * @return Currently always returns true or throws an error
      */
     public boolean spawn(){
         this.rootBone.syncPositionToDisplayGroup(new Triple(pivotPoint));
@@ -148,6 +149,7 @@ import java.util.*;
             EntityHandler.getEntityHandler(player.getUniqueId()).removeActiveItemDisplayGroup(uuid);
             unrender(player);
         }
+        destroyed = true;
         return true;
     }
 
@@ -403,6 +405,16 @@ import java.util.*;
                 itemDisplayGroup.setRotationInEulerAngles(new Triple(oldRotation.x+ subdividedRotation.x, oldRotation.y+subdividedRotation.y, oldRotation.z+subdividedRotation.z));
             }
         }.runTaskTimer(MultiItemDisplayEngine.plugin, 0L, 1);
+    }
+
+    /**
+     *
+     * Check whether this ItemDisplayGroup is marked as destroyed. A destroyed mean among other things that the model isn't rendered.
+     *
+     * @return Whether the itemDisplayGroup is destroyed.
+     */
+    public boolean isDestroyed() {
+        return destroyed;
     }
 
     public double GetYaw() {

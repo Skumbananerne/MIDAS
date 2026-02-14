@@ -153,9 +153,9 @@ public class Bone {
             PacketSender.sendPacket(player, PacketCreator.addItemDisplayPacket(spawnPosition, entityID));
             ItemDisplayPacketData data =  new ItemDisplayPacketData();
             data.setDisplayedItem(this.displayedItem);
-            Bukkit.getScheduler().runTaskLater(MultiItemDisplayEngine.plugin, () -> {
+            //Bukkit.getScheduler().runTaskLater(MultiItemDisplayEngine.plugin, () -> {
                 PacketSender.sendPacket(player, PacketCreator.setItemDisplayDataPacket(data, entityID));
-            }, 1);
+            //}, 1);
 
             if (pivotPointDisplay == null){
                 World world = player.getWorld();

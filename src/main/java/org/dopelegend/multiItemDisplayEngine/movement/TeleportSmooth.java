@@ -97,18 +97,29 @@ public class TeleportSmooth {
 
         Triple relCoords = Triple.difference(bone.getPosition(), targetLoc);
 
+        MultiItemDisplayEngine.plugin.getLogger().warning("TargetLoc (Location) = " + location);
+        MultiItemDisplayEngine.plugin.getLogger().warning("TargetLoc (Triple) = " + targetLoc);
+        MultiItemDisplayEngine.plugin.getLogger().warning("Bone position = " + bone.getPosition());
+        MultiItemDisplayEngine.plugin.getLogger().warning("Difference = " + relCoords);
+
+
+
         bone.setPosition(targetLoc);
 
-        ClientboundTeleportEntityPacket teleportPacket = PacketCreator.teleportEntityPacket(bone.getEntityID(), relCoords);
+        //ClientboundTeleportEntityPacket teleportPacket = PacketCreator.teleportEntityPacket(bone.getEntityID(), relCoords);
 
         ItemDisplayPacketData itemDisplayPacketData = new ItemDisplayPacketData();
-        itemDisplayPacketData.setTeleportInterpolationDuration(teleportDuration);
+
+        itemDisplayPacketData.setTranslation(relCoords.toVector3f());
+        itemDisplayPacketData.setTransformationInterpolationDuration(teleportDuration);
+        itemDisplayPacketData.setInterpolationDelay(0);
+
         ClientboundSetEntityDataPacket entityDataPacket = PacketCreator.setItemDisplayDataPacket(itemDisplayPacketData, bone.getEntityID());
 
         for (Player player : bone.getRenderingPlayers()){
             if (!player.getWorld().equals(location.getWorld())) continue;
             PacketSender.sendPacket(player, entityDataPacket);
-            PacketSender.sendPacket(player, teleportPacket);
+            //PacketSender.sendPacket(player, teleportPacket);
         }
     }
 }

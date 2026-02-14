@@ -31,19 +31,16 @@ public class ModelCommand {
         ItemDisplayGroup itemDisplayGroup = new ItemDisplayGroup(new Location(player.getWorld(), 0.5, 1.5 ,0.5), ctx.getArgument("model name", String.class));
         itemDisplayGroup.spawn();
 
-
         Location teleportLoc = new Location(player.getWorld(), 0.5, 1.5 ,0.5);
         //itemDisplayGroup.playAnimation("animation");
+        itemDisplayGroup.setPivotPoint(teleportLoc.clone().add(0, 1, 0));
 
         new BukkitRunnable() {
             @Override
             public void run() {
-                teleportLoc.add(0,0,1);
-                player.sendMessage("Teleporting to: " + teleportLoc);
-                TeleportSmooth.TeleportSingleBoneSmooth(itemDisplayGroup.getRootBone(), teleportLoc, 20);
+                TeleportSmooth.TeleportSingleBoneSmooth(itemDisplayGroup.getRootBone(), teleportLoc.add(0, 1, 0), 20);
             }
-        }.runTaskTimer(MultiItemDisplayEngine.plugin, 20L, 20L);
-
+        }.runTaskLater(MultiItemDisplayEngine.plugin, 1L);
 
         return 1;
     }
