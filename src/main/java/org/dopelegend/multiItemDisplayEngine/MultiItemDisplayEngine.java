@@ -14,6 +14,7 @@
     import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.PacketUpdater;
     import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketCreator;
     import org.dopelegend.multiItemDisplayEngine.texturePack.PackWebServer;
+    import org.dopelegend.multiItemDisplayEngine.utils.Timer;
 
     import java.io.IOException;
 
@@ -31,6 +32,7 @@
             saveDefaultConfig();
             config = getConfig();
 
+            Timer.initialize();
             FileStructure.generateEntireFileStructure();
             new CommandListener(this);
             TexturePack.generateTexturePack();

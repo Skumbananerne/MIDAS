@@ -14,6 +14,7 @@ import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.generator.TexturePack;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.movement.TeleportSmooth;
+import org.dopelegend.multiItemDisplayEngine.utils.Timer;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -34,11 +35,13 @@ public class ModelCommand {
         Location teleportLoc = new Location(player.getWorld(), 0.5, 1.5 ,0.5);
         //itemDisplayGroup.playAnimation("animation");
         itemDisplayGroup.setPivotPoint(teleportLoc.clone().add(0, 1, 0));
+        Timer.printCurrentTime("Ran model command", false);
 
         new BukkitRunnable() {
             @Override
             public void run() {
                 TeleportSmooth.TeleportSingleBoneSmooth(itemDisplayGroup.getRootBone(), teleportLoc.add(0, 1, 0), 20);
+                Timer.printCurrentTime("Teleported bone", false);
             }
         }.runTaskLater(MultiItemDisplayEngine.plugin, 1L);
 
