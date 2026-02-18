@@ -32,7 +32,6 @@
             saveDefaultConfig();
             config = getConfig();
 
-            Timer.initialize();
             FileStructure.generateEntireFileStructure();
             new CommandListener(this);
             TexturePack.generateTexturePack();
@@ -46,6 +45,8 @@
             this.getServer().getPluginManager().registerEvents(new EventListener(), this);
 
             PacketUpdater.getInstance();
+
+
         }
 
         @Override

@@ -97,13 +97,6 @@ public class TeleportSmooth {
 
         Triple relCoords = Triple.difference(bone.getPosition(), targetLoc);
 
-        MultiItemDisplayEngine.plugin.getLogger().warning("TargetLoc (Location) = " + location);
-        MultiItemDisplayEngine.plugin.getLogger().warning("TargetLoc (Triple) = " + targetLoc);
-        MultiItemDisplayEngine.plugin.getLogger().warning("Bone position = " + bone.getPosition());
-        MultiItemDisplayEngine.plugin.getLogger().warning("Difference = " + relCoords);
-
-
-
         bone.setPosition(targetLoc);
 
         //ClientboundTeleportEntityPacket teleportPacket = PacketCreator.teleportEntityPacket(bone.getEntityID(), relCoords);

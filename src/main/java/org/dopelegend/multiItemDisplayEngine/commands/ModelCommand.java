@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class ModelCommand {
     public static int spawnModelByNameCommand(CommandContext<CommandSourceStack> ctx) {
+        Timer timer = new Timer("modelSpawn");
         if (!(ctx.getSource().getSender() instanceof Player player)) {
             ctx.getSource().getSender().sendRichMessage("<red> <bold> Only players can execute this command");
             return 0;
@@ -35,15 +36,15 @@ public class ModelCommand {
         Location teleportLoc = new Location(player.getWorld(), 0.5, 1.5 ,0.5);
         //itemDisplayGroup.playAnimation("animation");
         itemDisplayGroup.setPivotPoint(teleportLoc.clone().add(0, 1, 0));
-        Timer.printCurrentTime("Ran model command", false);
-
+        timer.printCurrentTime("Instant", false);
         new BukkitRunnable() {
             @Override
             public void run() {
+                timer.printCurrentTime("Running task", false);
                 TeleportSmooth.TeleportSingleBoneSmooth(itemDisplayGroup.getRootBone(), teleportLoc.add(0, 1, 0), 20);
-                Timer.printCurrentTime("Teleported bone", false);
+                timer.printCurrentTime("Teleported entity", false);
             }
-        }.runTaskLater(MultiItemDisplayEngine.plugin, 1L);
+        }.runTaskLater(MultiItemDisplayEngine.plugin, 20L);
 
         return 1;
     }

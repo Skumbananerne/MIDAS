@@ -91,7 +91,7 @@ import java.util.*;
 
         File file = FileReader.getModelFile(modelName);
         if(file == null) {
-            throw new IllegalArgumentException("Display group got intialized with a model that doesn't exist.");
+            throw new IllegalArgumentException("Display group got initialized with a model that doesn't exist.");
         }
         Bone rootBone = FileReader.getRootBone(file);
         if (rootBone == null) {
