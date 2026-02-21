@@ -15,6 +15,7 @@ import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketCreator;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketSender;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.ItemDisplayPacketData;
 import org.dopelegend.multiItemDisplayEngine.rotation.Rotate;
+import org.dopelegend.multiItemDisplayEngine.utils.Timer;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 import org.joml.Vector3f;
 
@@ -159,9 +160,8 @@ public class Bone {
             PacketSender.sendPacket(player, PacketCreator.addItemDisplayPacket(spawnPosition, entityID));
             ItemDisplayPacketData data =  new ItemDisplayPacketData();
             data.setDisplayedItem(this.displayedItem);
-            //Bukkit.getScheduler().runTaskLater(MultiItemDisplayEngine.plugin, () -> {
-                PacketSender.sendPacket(player, PacketCreator.setItemDisplayDataPacket(data, entityID));
-            //}, 1);
+            PacketSender.sendPacket(player, PacketCreator.setItemDisplayDataPacket(data, entityID));
+            Timer.GetById("modelSpawn").printCurrentTime("rendered by player: "+player.getName(), false);
 
             if (pivotPointDisplay == null){
                 World world = player.getWorld();
