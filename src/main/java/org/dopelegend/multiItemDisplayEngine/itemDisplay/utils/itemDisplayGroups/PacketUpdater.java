@@ -18,13 +18,12 @@ public class PacketUpdater {
      * Creates a new PacketUpdater. This also includes initializing the loop to check for players in range of itemDisplayGroups.
      */
     private PacketUpdater() {
-
         Bukkit.getScheduler().runTaskTimer(MultiItemDisplayEngine.plugin, () -> {
             for (ItemDisplayGroup itemDisplayGroup : activeItemDisplayGroups) {
                 renderItemDisplayGroup(itemDisplayGroup);
             }
 
-        }, 5, 1);
+        }, 5, 5);
 
     }
 
@@ -77,8 +76,8 @@ public class PacketUpdater {
      * @param itemDisplayGroup The ItemDisplayGroup to add
      */
     public static void addActiveItemDisplayGroup(ItemDisplayGroup itemDisplayGroup) {
-        activeItemDisplayGroups.add(itemDisplayGroup);
         renderItemDisplayGroup(itemDisplayGroup);
+        activeItemDisplayGroups.add(itemDisplayGroup);
     }
 
     public static void removeActiveItemDisplayGroup(ItemDisplayGroup itemDisplayGroup) {
