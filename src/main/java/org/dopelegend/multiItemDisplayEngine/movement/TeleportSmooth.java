@@ -112,7 +112,6 @@ public class TeleportSmooth {
         for (Player player : bone.getRenderingPlayers()){
             if (!player.getWorld().equals(location.getWorld())) continue;
             PacketSender.sendPacket(player, entityDataPacket);
-            //PacketSender.sendPacket(player, teleportPacket);
         }
     }
 }
