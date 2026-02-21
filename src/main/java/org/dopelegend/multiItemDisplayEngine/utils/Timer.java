@@ -32,7 +32,8 @@ public class Timer {
         MultiItemDisplayEngine.plugin.getLogger().info(currentTimeMilliseconds+" ms: "+message);
     }
 
-    public static Timer getById(String id) {
+    public static Timer GetById(String id) {
         return timers.get(id);
     }
+    public static void removeByID(String id) {timers.remove(id);}
 }

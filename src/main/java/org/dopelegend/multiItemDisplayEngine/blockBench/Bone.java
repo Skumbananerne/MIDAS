@@ -104,6 +104,12 @@ public class Bone {
         this.entityID = Bukkit.getUnsafe().nextEntityId();
     }
 
+    /**
+     *
+     * Creates the an ItemStack for this entity, with the correct model.
+     *
+     * @return The ItemStack
+     */
     private ItemStack createDisplayedItem(){
         // Create base item
         ItemStack itemDisplayItem = new ItemStack(Material.DIAMOND_BLOCK);
@@ -330,4 +336,5 @@ public class Bone {
     public void setParentBone(Bone parentBone) {
         this.parentBone = parentBone;
     }
+
 }
