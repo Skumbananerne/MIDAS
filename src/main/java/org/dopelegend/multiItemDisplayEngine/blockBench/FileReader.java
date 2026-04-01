@@ -4,6 +4,7 @@ import com.google.gson.*;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.generator.TexturePack;
 import org.dopelegend.multiItemDisplayEngine.files.utils.FileGetter;
+import org.dopelegend.multiItemDisplayEngine.utils.Uuid;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
 import java.io.File;
@@ -94,7 +95,7 @@ public class FileReader {
      *
      * Gets a bone from a json bone object and the parent bone, use parent bone null for root bones. This function iterates over itself to create child bones.
      *
-     * @param modelData Json object of the model file
+     * @param outlineObject The jsonObject of the outline
      * @param parent Parent bone
      * @return Created bone
      */
@@ -163,26 +164,9 @@ public class FileReader {
             // Add child bone as a child
             bone.addChildrenBone(createBone(childBone, modelData, bone));
         }
+        Bone[] childrenBoneArray = childrenBones.toArray((new Bone[0]));
+        bone.setChildrenBone(childrenBoneArray);
 
         return bone;
-    }
-
-    /**
-     *
-     * @param elements The jsonArray of elements from the .bbmodel file.
-     * @param uuid The uuid of the element to find
-     * @return The element if it exists, or null if it doesn't
-     */
-    static private JsonObject getElement(JsonArray elements, String uuid){
-        JsonObject element;
-        String currentUUID;
-        for(int i = 0; i < elements.size(); i++){
-            currentUUID =  elements.get(i).getAsJsonObject().get("uuid").getAsString();
-            if(currentUUID.equals(uuid)){
-                element = elements.get(i).getAsJsonObject();
-                return element;
-            }
-        }
-        return null;
     }
 }

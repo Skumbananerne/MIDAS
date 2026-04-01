@@ -24,6 +24,8 @@
     import java.io.IOException;
     import java.util.function.Consumer;
 
+    import javax.swing.text.html.parser.Entity;
+
 
     public final class MultiItemDisplayEngine extends JavaPlugin {
 

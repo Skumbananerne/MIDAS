@@ -87,7 +87,6 @@ import java.util.*;
         if (pivotPoint == null || modelName == null || modelName.isEmpty()) {
             throw new IllegalArgumentException("Display groups cannot be intialized with null or empty values.");
         }
-        this.pivotPoint = pivotPoint;
 
         File file = FileReader.getModelFile(modelName);
         if(file == null) {
@@ -483,4 +482,47 @@ import java.util.*;
     public static List<ItemDisplayGroup> getAllItemDisplayGroups(){
         return allItemDisplayGroups;
     }
+
+    private static List<Pair<ItemDisplayGroup, String>> registeredItemDisplayGroup = new ArrayList<>();
+    private static final List<ItemDisplayGroup> spawnedItemDisplayGroup = new ArrayList<>();
+
+    public static void registerItemDisplayGroup(ItemDisplayGroup itemDisplayGroup) {
+        Pair<ItemDisplayGroup, String> tempItemDisplayGroup = Pair.of(itemDisplayGroup, itemDisplayGroup.getModelName());
+        registeredItemDisplayGroup.add(tempItemDisplayGroup);
+    }
+    public static ItemDisplayGroup getItemDisplayGroup(Location pivotPoint, String modelName) {
+        if (pivotPoint == null || modelName == null || modelName.isEmpty()) {
+            throw new IllegalArgumentException("All values needed to find ItemDisplayGroup.");
+        }
+
+        ItemDisplayGroup foundGroup = null;
+        for(Pair<ItemDisplayGroup, String> group : registeredItemDisplayGroup){
+            if(Objects.equals(group.right(), modelName)){
+                foundGroup = new ItemDisplayGroup(group.left());
+            }
+        }
+
+        if(foundGroup != null){
+            foundGroup.setPivotPoint(pivotPoint);
+        }
+
+        return foundGroup;
+    }
+    public static void resetRegisteredItemDisplayGroup(){
+        registeredItemDisplayGroup = new ArrayList<>();
+    }
+
+    public static ItemDisplayGroup[] getAllSpawnedItemDisplayGroups(){
+        return spawnedItemDisplayGroup.toArray(new ItemDisplayGroup[0]);
+    }
+    public static ItemDisplayGroup getByUuidSpawnedItemDisplayGroups(String uuid){
+        for (ItemDisplayGroup itemDisplayGroup : spawnedItemDisplayGroup){
+            if(Objects.equals(itemDisplayGroup.getUuid(), uuid)) return itemDisplayGroup;
+        }
+        return null;
+    }
+    public static void addSpawnedItemDisplayGroups(ItemDisplayGroup itemDisplayGroup){
+        spawnedItemDisplayGroup.add(itemDisplayGroup);
+    }
+
 }
