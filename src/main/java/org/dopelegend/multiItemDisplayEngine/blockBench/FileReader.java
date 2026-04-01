@@ -2,6 +2,7 @@ package org.dopelegend.multiItemDisplayEngine.blockBench;
 
 import com.google.gson.*;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
+import org.dopelegend.multiItemDisplayEngine.blockBench.generator.TexturePack;
 import org.dopelegend.multiItemDisplayEngine.files.utils.FileGetter;
 import org.dopelegend.multiItemDisplayEngine.utils.Uuid;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
@@ -34,9 +35,27 @@ public class FileReader {
      * Gets the root bone from a model file, this needs to be a .bbmodel file, and won't work probably if the model has multiple root bones.
      *
      * @param modelFile The file to get the root bone from
-     * @return The root bone
+     * @return The root bone or null if it couldn't be acquired
      */
     public static Bone getRootBone(File modelFile) {
+
+        JsonObject modelData = getRootJsonObject(modelFile);
+        if(modelData == null) return null;
+
+        //Get rootBone
+        JsonObject boneObject = modelData.getAsJsonArray("outliner").get(0).getAsJsonObject();
+        JsonArray groupArray = modelData.get("groups").getAsJsonArray();
+        return createBone(TexturePack.getBoneFromUUID(boneObject.get("uuid").getAsString(), groupArray), modelData, null);
+    }
+
+    /**
+     *
+     * Gets the root JsonObject in a certain file. This file needs to be a .bbmodel file
+     *
+     * @param modelFile The file to get the root JsonObject from
+     * @return The root JsonObject or null if it couldn't be acquired for one reason or another
+     */
+    public static JsonObject getRootJsonObject(File modelFile) {
         //File doesn't exist
         if(!modelFile.exists()){
             MultiItemDisplayEngine.plugin.getLogger().warning("The model file could not be found: " + modelFile.getPath());
@@ -69,13 +88,8 @@ public class FileReader {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-
-        //Get rootBone
-
-        JsonObject boneObject = modelData.getAsJsonArray("outliner").get(0).getAsJsonObject();
-        return createBone(boneObject, null, modelData, modelFile.getName().substring(0, modelFile.getName().lastIndexOf('.')));
+        return modelData;
     }
-
 
     /**
      *
@@ -85,42 +99,70 @@ public class FileReader {
      * @param parent Parent bone
      * @return Created bone
      */
-    static private Bone createBone(JsonObject outlineObject, Bone parent, JsonObject rootJson, String fileName){
-        JsonArray originArray = outlineObject.getAsJsonArray("origin");
-        JsonArray childrenArray = outlineObject.getAsJsonArray("children");
+    static private Bone createBone(JsonObject boneObject, JsonObject modelData, Bone parent){
+        // Get origin array
+        JsonArray originArray = boneObject.getAsJsonArray("origin");
 
-        List<String> uuids = new ArrayList<>();
-        List<Element> elements = new ArrayList<>();
-        for(int i = 0; i < childrenArray.size(); i++){
-            Object object = childrenArray.get(i);
-            if(!(object instanceof JsonObject)){
-                uuids.add(childrenArray.get(i).getAsString());
+        JsonArray rotationArray = boneObject.getAsJsonArray("rotation");
+        Triple rotation = new Triple(0, 0, 0);
+        if(rotationArray != null){
+            rotation = new Triple(rotationArray.get(0).getAsDouble(), rotationArray.get(1).getAsDouble(), rotationArray.get(2).getAsDouble());
+        }
+
+        // Get outlinerBone
+        String boneUUID = boneObject.get("uuid").getAsString();
+
+        JsonArray outlinerArray = modelData.getAsJsonArray("outliner");
+        JsonObject outlinerBone = TexturePack.getOutlinerBoneFromUUID(boneUUID, outlinerArray);
+
+        JsonArray groupArray = modelData.getAsJsonArray("groups");
+
+        JsonArray childrenArray = outlinerBone.getAsJsonArray("children");
+
+        //Finds the uuid of the first element in the children of the bone, or null if it has none
+        String uuid = null;
+        for(Object object : childrenArray){
+            if(object instanceof JsonPrimitive jsonPrimitive) {
+                if (!jsonPrimitive.isString()) continue;
+                uuid = jsonPrimitive.getAsString();
+                break;
             }
         }
 
-        for(String uuid : uuids){
-            elements.add(Element.getElementFromUuid(rootJson, uuid, fileName));
+        Bone bone;
+        if(uuid == null){
+            bone = new Bone(
+                    new Triple(originArray.get(0).getAsDouble(), originArray.get(1).getAsDouble(),originArray.get(2).getAsDouble()),
+                    rotation,
+                    parent,
+                    new ArrayList<>(),
+                    boneUUID
+            );
+        }
+        else {
+            // Bone has an element
+            bone = new Bone(
+                    new Triple(originArray.get(0).getAsDouble(), originArray.get(1).getAsDouble(),originArray.get(2).getAsDouble()),
+                    rotation,
+                    parent,
+                    new ArrayList<>(),
+                    boneUUID,
+                    modelData.get("name").getAsString()
+            );
         }
 
 
-        Element[] childrenElementArray = elements.toArray((new Element[0]));
-        Bone bone = new Bone(
-                new Triple(originArray.get(0).getAsDouble(), originArray.get(1).getAsDouble(),originArray.get(2).getAsDouble()),
-                parent,
-                new Bone[0],
-                childrenElementArray,
-                Uuid.getStringUuid());
+        //Loop through outliner bones
+        for(JsonElement element : childrenArray){
+            if(!(element instanceof JsonObject childOutlinerBone)) continue;
 
+            // Get child bone in 'groups'
+            String childBoneUUID = childOutlinerBone.get("uuid").getAsString();
+            JsonObject childBone = TexturePack.getBoneFromUUID(childBoneUUID, groupArray);
+            if (childBone.isEmpty()) continue;
 
-        //Create children bones
-
-        List<Bone> childrenBones = new ArrayList<Bone>();
-        for(int i = 0; i < childrenArray.size(); i++){
-            Object object = childrenArray.get(i);
-            if(!(object instanceof JsonObject)){
-                continue;
-            }
-            childrenBones.add(createBone(childrenArray.get(i).getAsJsonObject(), bone, rootJson, fileName));
+            // Add child bone as a child
+            bone.addChildrenBone(createBone(childBone, modelData, bone));
         }
         Bone[] childrenBoneArray = childrenBones.toArray((new Bone[0]));
         bone.setChildrenBone(childrenBoneArray);

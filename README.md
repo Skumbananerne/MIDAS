@@ -1,3 +1,4 @@
+This project is completely unfunctional. It is, however, being actively developed so stay tuned for updates. The repository might be made private in the future but when finished it will be opensource.
 # MIDAS
 
 ## Overview
