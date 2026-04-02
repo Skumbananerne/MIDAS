@@ -43,14 +43,14 @@ public class ModelCommand {
         Location teleportLoc = new Location(player.getWorld(), 0.5, 1.5 ,0.5);
 
         timer.printCurrentTime("Instant", false);
-//        new BukkitRunnable() {
-//            @Override
-//            public void run() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
                 timer.printCurrentTime("Running task", false);
                 TeleportSmooth.TeleportSingleBoneSmooth(itemDisplayGroup.getRootBone(), teleportLoc.add(0, 1, 0), 20);
                 timer.printCurrentTime("Teleported entity", false);
-//            }
-//        }.runTaskLater(MultiItemDisplayEngine.plugin, 20L);
+            }
+        }.runTaskLater(MultiItemDisplayEngine.plugin, 1L);
 
         return 1;
     }
