@@ -66,17 +66,17 @@ public class Bone {
 
     /**
      *
+     * When this constructor is used we assume the bone doesn't have an element.
+     *
      * @param relPivot The origin represented by 3 doubles in the form of a triple.
      * @param parentBone Parent of this bone
      * @param childrenBones All children direct child bones from this bone
-     * @param elements All elements that this bone represents
      * @param UUID UUID of this bone
      */
     public Bone(Triple relPivot, Triple baseRotation, Bone parentBone, List<Bone> childrenBones, String UUID) {
         this.relPivot = relPivot;
         this.UUID = UUID;
         this.childrenBones = childrenBones;
-        this.elements = elements;
         this.parentBone = parentBone;
         this.hasElement = false;
         this.baseRotation = baseRotation;
@@ -325,8 +325,8 @@ public class Bone {
         this.childrenBones = childrenBones;
     }
 
-    public void setChildrenBone(Bone[] childrenBone) {
-        this.childrenBones = childrenBone;
+    public void addChildrenBone(Bone childrenBone) {
+        this.childrenBones.add(childrenBone);
     }
 
     public Bone getParentBone() {
