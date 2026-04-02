@@ -5,7 +5,7 @@ import org.bukkit.Bukkit;
 import java.util.*;
 
 /**
- * A util class for making sure each player has unique EID this should be used to get all EntityIDs for packets.
+ *
  */
 public class EntityHandler {
     /**

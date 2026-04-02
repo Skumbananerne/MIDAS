@@ -1,5 +1,7 @@
 package org.dopelegend.multiItemDisplayEngine.packetHandler.packets;
 
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
 import net.minecraft.network.syncher.EntityDataSerializer;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -9,10 +11,12 @@ import org.joml.Vector3fc;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DisplayPacketData implements PacketData{
+public class DisplayDataPacket implements PacketData{
     int interpolationDelay = Integer.MIN_VALUE;
     int transformationInterpolationDuration = Integer.MIN_VALUE;
     int teleportInterpolationDuration = Integer.MIN_VALUE;
+
+    int entityID;
 
     Vector3fc translation = null;
     Vector3fc scale = null;
@@ -152,7 +156,14 @@ public class DisplayPacketData implements PacketData{
         this.glowColorOverride = glowColorOverride;
     }
 
-    @Override
+    public int getEntityID() {
+        return entityID;
+    }
+
+    public void setEntityID(int entityID) {
+        this.entityID = entityID;
+    }
+
     public List<SynchedEntityData.DataValue<?>> getPacketData(){
         List<SynchedEntityData.DataValue<?>> data = new ArrayList<>();
 
@@ -323,5 +334,13 @@ public class DisplayPacketData implements PacketData{
         }
 
         return data;
+    }
+
+    @Override
+    public ClientboundSetEntityDataPacket createPacket(){
+        return new ClientboundSetEntityDataPacket(
+                entityID,
+                getPacketData()
+        );
     }
 }

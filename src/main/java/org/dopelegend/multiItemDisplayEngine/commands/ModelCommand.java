@@ -7,14 +7,22 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.generator.TexturePack;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.movement.TeleportSmooth;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketSender;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.ItemDisplayDataPacketData;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.SpawnItemDisplayPacketData;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.TeleportEntityPacketData;
 import org.dopelegend.multiItemDisplayEngine.utils.Timer;
+import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
+import org.joml.Vector3f;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -141,5 +149,67 @@ public class ModelCommand {
         }
 
         return builder.buildFuture();
+    }
+
+
+    // Debug commmands under here O_O
+    static int currentTestId = -1;
+    public static int spawnTestItemDisplay(CommandContext<CommandSourceStack> ctx) {
+        if (!(ctx.getSource().getSender() instanceof Player player)) {
+            ctx.getSource().getSender().sendRichMessage("<red> <bold> Only players can execute this command");
+            return 0;
+        }
+
+        currentTestId = Bukkit.getUnsafe().nextEntityId();
+        SpawnItemDisplayPacketData spawnItemDisplayPacketData = new SpawnItemDisplayPacketData();
+        spawnItemDisplayPacketData.setEntityID(currentTestId);
+        spawnItemDisplayPacketData.setPosition(new Triple(player.getLocation()));
+        ItemDisplayDataPacketData itemPacket = new ItemDisplayDataPacketData();
+        itemPacket.setEntityID(currentTestId);
+        itemPacket.setDisplayedItem(new ItemStack(Material.DIAMOND_BLOCK));
+
+        List<Player> players = (List<Player>) Bukkit.getOnlinePlayers().stream().toList();
+        PacketSender.queuePacket(spawnItemDisplayPacketData, players);
+        PacketSender.queuePacket(itemPacket, players);
+        return 1;
+    }
+
+    public static int testItemDisplay(CommandContext<CommandSourceStack> ctx) {
+        if (!(ctx.getSource().getSender() instanceof Player player)) {
+            ctx.getSource().getSender().sendRichMessage("<red> <bold> Only players can execute this command");
+            return 0;
+        }
+        if(currentTestId == -1) {
+            ctx.getSource().getSender().sendRichMessage("<red> <bold> Go fuck yourself");
+            return 0;
+        }
+
+        ItemDisplayDataPacketData itemDisplayDataPacketData = new ItemDisplayDataPacketData();
+        itemDisplayDataPacketData.setEntityID(currentTestId);
+        itemDisplayDataPacketData.setTranslation(new Vector3f(0, 5, 0));
+        itemDisplayDataPacketData.setTransformationInterpolationDuration(5);
+        itemDisplayDataPacketData.setInterpolationDelay(0);
+
+        ItemDisplayDataPacketData itemDisplayDataPacketData2 = new ItemDisplayDataPacketData();
+        itemDisplayDataPacketData2.setTranslation(new Vector3f(0, 0, 0));
+        itemDisplayDataPacketData2.setTransformationInterpolationDuration(0);
+        itemDisplayDataPacketData2.setInterpolationDelay(0);
+        itemDisplayDataPacketData2.setEntityID(currentTestId);
+
+        TeleportEntityPacketData teleportEntityPacketData = new TeleportEntityPacketData();
+        teleportEntityPacketData.setEntityID(currentTestId);
+        teleportEntityPacketData.setRelCoords(new Triple(0, 5, 0));
+
+        List<Player> players = (List<Player>) Bukkit.getOnlinePlayers().stream().toList();
+
+        PacketSender.queuePacket(itemDisplayDataPacketData, players);
+
+        Bukkit.getScheduler().runTaskLater(MultiItemDisplayEngine.plugin, () -> {
+            PacketSender.queuePacket(itemDisplayDataPacketData2, players);
+            PacketSender.queuePacket(teleportEntityPacketData, players);
+        }, 6);
+
+        MultiItemDisplayEngine.plugin.getLogger().info("test that shiii");
+        return 1;
     }
 }

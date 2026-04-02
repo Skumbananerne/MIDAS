@@ -8,7 +8,7 @@ import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.plugin.Plugin;
 
-import static org.dopelegend.multiItemDisplayEngine.commands.ModelCommand.deleteItemDisplayGroup;
+import static org.dopelegend.multiItemDisplayEngine.commands.ModelCommand.*;
 
 public class CommandListener {
 
@@ -39,6 +39,12 @@ public class CommandListener {
                 .then(Commands.literal("texturepack")
                         .then(Commands.literal("generate")
                                 .executes(ModelCommand::generateTexturePack)))
-                .build();
+                .then(Commands.literal("spawn_test")
+                        .executes(ModelCommand::spawnTestItemDisplay)
+                )
+                .then(Commands.literal("test")
+                        .executes(ModelCommand::testItemDisplay)
+                ).build();
+
     }
 }

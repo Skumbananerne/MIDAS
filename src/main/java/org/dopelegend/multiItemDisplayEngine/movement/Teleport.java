@@ -1,6 +1,5 @@
 package org.dopelegend.multiItemDisplayEngine.movement;
 
-import net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket;
 import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -9,8 +8,8 @@ import org.bukkit.entity.Player;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
-import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketCreator;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketSender;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.TeleportEntityPacketData;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
 public class Teleport {
@@ -76,12 +75,13 @@ public class Teleport {
         Triple relCoords = Triple.difference(bone.getPosition(), targetLoc);
         bone.setPosition(targetLoc);
 
-        ClientboundTeleportEntityPacket teleportPacket = PacketCreator.teleportEntityPacket(bone.getEntityID(), relCoords);
-
+        TeleportEntityPacketData teleportEntityPacketData = new TeleportEntityPacketData();
+        teleportEntityPacketData.setEntityID(bone.getEntityID());
+        teleportEntityPacketData.setRelCoords(relCoords);
 
         for (Player player : bone.getRenderingPlayers()){
             if (!player.getWorld().equals(location.getWorld())) continue;
-            PacketSender.sendPacket(player, teleportPacket);
+            PacketSender.queuePacket(teleportEntityPacketData, player);
         }
     }
 

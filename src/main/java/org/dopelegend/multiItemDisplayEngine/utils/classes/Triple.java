@@ -2,7 +2,9 @@ package org.dopelegend.multiItemDisplayEngine.utils.classes;
 
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.Location;
+import org.joml.Vector3dc;
 import org.joml.Vector3f;
+import org.joml.Vector3fc;
 
 public class Triple {
     public double x;
@@ -17,16 +19,29 @@ public class Triple {
 
     /**
      *
+     * Adds a triple to this triple.
+     *
+     * @param triple The triple to add.
+     * @return A new copy with the triple added (the triple this method is called on will also be updated).
+     */
+    public Triple add(Triple triple){
+        this.x += triple.x;
+        this.y += triple.y;
+        this.z += triple.z;
+        return this.clone();
+    }
+    /**
+     *
      * Subtracts a triple from this triple.
      *
      * @param triple The triple to subtract.
-     * @return A new copy with the triple subtracted (both copies will have the operation done).
+     * @return A new copy with the triple subtracted (the triple this method is called on will also be updated).
      */
     public Triple remove(Triple triple) {
         this.x -= triple.x;
         this.y -= triple.y;
         this.z -= triple.z;
-        return new Triple(x, y, z);
+        return this.clone();
     }
 
     @Override
@@ -81,6 +96,30 @@ public class Triple {
          this.x = location.getX();
          this.y = location.getY();
          this.z = location.getZ();
+    }
+
+    /**
+     *
+     * Makes a new triple of the x, y and z values in a vector3fc
+     *
+     * @param vector3fc The vector3fc to get the coordinates from. If this is null an empty Triple will be returned.
+     */
+    public Triple(Vector3fc vector3fc) {
+        if (vector3fc==null){
+            this.x = 0;
+            this.y = 0;
+            this.z = 0;
+            return;
+        }
+        this.x = vector3fc.x();
+        this.y = vector3fc.y();
+        this.z = vector3fc.z();
+    }
+
+    public double getDistanceSquared(Triple triple){
+        return (triple.x-this.x)*(triple.x-this.x)
+                +(triple.y-this.y)*(triple.y-this.y)
+                +(triple.z-this.z)*(triple.z-this.z);
     }
 
     /**

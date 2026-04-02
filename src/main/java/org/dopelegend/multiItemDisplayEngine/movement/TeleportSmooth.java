@@ -1,22 +1,14 @@
 package org.dopelegend.multiItemDisplayEngine.movement;
 
-import net.minecraft.network.protocol.game.ClientboundBundleDelimiterPacket;
-import net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket;
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
-import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
-import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketCreator;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketSender;
-import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.ItemDisplayPacketData;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.ItemDisplayDataPacketData;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
-import org.joml.Matrix4f;
 
 public class TeleportSmooth {
 
@@ -99,19 +91,13 @@ public class TeleportSmooth {
 
         bone.setPosition(targetLoc);
 
-        //ClientboundTeleportEntityPacket teleportPacket = PacketCreator.teleportEntityPacket(bone.getEntityID(), relCoords);
+        ItemDisplayDataPacketData itemDisplayDataPacketData = new ItemDisplayDataPacketData();
 
-        ItemDisplayPacketData itemDisplayPacketData = new ItemDisplayPacketData();
+        itemDisplayDataPacketData.setTranslation(relCoords.toVector3f());
+        itemDisplayDataPacketData.setTransformationInterpolationDuration(teleportDuration);
+        itemDisplayDataPacketData.setEntityID(bone.getEntityID());
+        itemDisplayDataPacketData.setInterpolationDelay(0);
 
-        itemDisplayPacketData.setTranslation(relCoords.toVector3f());
-        itemDisplayPacketData.setTransformationInterpolationDuration(teleportDuration);
-        itemDisplayPacketData.setInterpolationDelay(0);
-
-        ClientboundSetEntityDataPacket entityDataPacket = PacketCreator.setItemDisplayDataPacket(itemDisplayPacketData, bone.getEntityID());
-
-        for (Player player : bone.getRenderingPlayers()){
-            if (!player.getWorld().equals(location.getWorld())) continue;
-            PacketSender.sendPacket(player, entityDataPacket);
-        }
+        bone.addPacket(itemDisplayDataPacketData);
     }
 }

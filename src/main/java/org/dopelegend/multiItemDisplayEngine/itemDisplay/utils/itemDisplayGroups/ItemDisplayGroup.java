@@ -15,6 +15,10 @@ import org.dopelegend.multiItemDisplayEngine.blockBench.generator.Animation;
 import org.dopelegend.multiItemDisplayEngine.blockBench.generator.KeyFrame;
 import org.dopelegend.multiItemDisplayEngine.movement.TeleportSmooth;
 import org.dopelegend.multiItemDisplayEngine.movement.Teleport;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketSender;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.ItemDisplayDataPacketData;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.PacketData;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.TeleportEntityPacketData;
 import org.dopelegend.multiItemDisplayEngine.rotation.Rotate;
 import org.dopelegend.multiItemDisplayEngine.rotation.RotateSmooth;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.EntityHandler;
@@ -33,8 +37,10 @@ import java.util.*;
     public enum AnimationState{RUNNING, HOLDING, PAUSED, FREE}
 
     //Class variables
-    // TODO make this config based
-    private int viewRangeSquared = 10*10;
+    // TODO make these config based
+    private int viewRangeSquared = 100*100;
+    private final double teleportThreshold = viewRangeSquared/(3.0*3.0);
+
     private List<Player> renderingPlayers = new ArrayList<>();
     private Location pivotPoint;
     private UUID uuid;
@@ -56,7 +62,7 @@ import java.util.*;
      * This constructor makes static itemDisplayGroups, as there's no animation references
      *
      * @param pivotPoint The location of the center which the itemDisplayGroup should be rotated around.
-     * @param rootBone The bone at the top of the bone hiearchy, this is obviously also the bone with no parent and all other bones as children/grandchildren or any other generation under it.
+     * @param rootBone The bone at the top of the bone hierarchy, this is obviously also the bone with no parent and all other bones as children/grandchildren or any other generation under it.
      *
      */
     public ItemDisplayGroup(Location pivotPoint, Bone rootBone) {
@@ -127,6 +133,51 @@ import java.util.*;
         }
 
         this.animations = animations;
+    }
+
+    /**
+     * Queues all packets from all bones in this itemDisplayGroup in the PacketSender.
+     * Errors:
+     * Doesn't do rotation (when trying to add make sure it can handle different centers of rotation).
+     * Will not work as expected if the entityDataPacket is an absolute value that overwrites the previous translation.
+     */
+    public void queueAllPackets(){
+        for (Bone bone : rootBone.getAllChildrenBones(true)){
+            Triple relTranslation = new Triple(0, 0,0);
+            // Sum all translations
+            for (PacketData packetData : bone.getPackets()){
+                if (!(packetData instanceof ItemDisplayDataPacketData transformationPacketData)) continue;
+                relTranslation.add(new Triple(transformationPacketData.getTranslation()));
+            }
+            // Reset position if it's outside teleportThreshold
+            if (relTranslation.add(bone.getPosition()).getDistanceSquared(bone.getRealPosition()) >= teleportThreshold){
+                TeleportEntityPacketData teleportPacket = new TeleportEntityPacketData();
+                teleportPacket.setRelCoords(Triple.difference(bone.getRealPosition(), bone.getPosition()));
+                teleportPacket.setEntityID(bone.getEntityID());
+
+                ItemDisplayDataPacketData translationPacket = new ItemDisplayDataPacketData();
+                translationPacket.setTranslation(Triple.difference(bone.getPosition(), bone.getRealPosition()).add(relTranslation).toVector3f());
+                translationPacket.setEntityID(bone.getEntityID());
+                translationPacket.setInterpolationDelay(0);
+                translationPacket.setTransformationInterpolationDuration(1);
+
+                PacketSender.queuePacket(translationPacket, renderingPlayers);
+                PacketSender.queuePacket(teleportPacket, renderingPlayers);
+
+                bone.clearPackets();
+                continue;
+            }
+
+            // Send combined dataPacket
+            ItemDisplayDataPacketData bonePacket = new ItemDisplayDataPacketData();
+            bonePacket.setTranslation(relTranslation.toVector3f());
+            bonePacket.setEntityID(bone.getEntityID());
+            bonePacket.setInterpolationDelay(0);
+            bonePacket.setTransformationInterpolationDuration(1);
+            PacketSender.queuePacket(bonePacket, renderingPlayers);
+
+            bone.clearPackets();
+        }
     }
 
     /**

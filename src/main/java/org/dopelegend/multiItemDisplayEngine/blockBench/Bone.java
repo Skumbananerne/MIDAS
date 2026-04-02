@@ -1,6 +1,7 @@
 package org.dopelegend.multiItemDisplayEngine.blockBench;
 
-import net.minecraft.world.level.biome.BiomeManager;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.server.packs.repository.Pack;
 import org.bukkit.*;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
@@ -8,12 +9,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Transformation;
-import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.movement.Teleport;
-import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketCreator;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketSender;
-import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.ItemDisplayPacketData;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.ItemDisplayDataPacketData;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.PacketData;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.RemoveEntitiesPacketData;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.SpawnItemDisplayPacketData;
 import org.dopelegend.multiItemDisplayEngine.rotation.Rotate;
 import org.dopelegend.multiItemDisplayEngine.utils.Timer;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
@@ -40,16 +42,17 @@ public class Bone {
      */
     private Triple baseRotation;
     /**
-     * This is the currentRotation of this bone as an euler angle in degrees, note that changing this won't actually change the rotation it will simply update the value.
+     * This is the currentRotation of this bone as an Euler angle in degrees, note that changing this won't actually change the rotation it will simply update the value.
      */
     private Triple currentRotation;
+    private List<PacketData> packets = new ArrayList<>();
 
     /**
      * The entityID of the itemDisplay this is linked to.
      */
     private int entityID;
     private ItemDisplay itemDisplay;
-    private String UUID = "";
+    private String UUID;
     private List<Bone> childrenBones;
     private Bone parentBone;
     private String modelName;
@@ -57,9 +60,13 @@ public class Bone {
     private ItemDisplay pivotPointDisplay;
 
     /**
-     * The world coordinates of this position.
+     * The world coordinates of this bone (visually).
      */
     private Triple position;
+    /**
+     * The world coordinates of this bone without translation (real).
+     */
+    private Triple realPosition;
 
     boolean hasElement = false;
     List<Player> renderingPlayers = new ArrayList<>();
@@ -107,7 +114,7 @@ public class Bone {
 
     /**
      *
-     * Creates the an ItemStack for this entity, with the correct model.
+     * Creates the ItemStack for this entity, with the correct model.
      *
      * @return The ItemStack
      */
@@ -125,7 +132,7 @@ public class Bone {
     }
 
     /**
-     * Syncs the stored position of this bone and all of its child bones to the ItemDisplayGroup.
+     * Syncs the stored position (both real and fake) of this bone and all of its child bones to the ItemDisplayGroup.
      * This doesn't actually move visually,
      * and should only be called inside the MIDAS plugin when spawning an ItemDisplayGroup.
      *
@@ -142,6 +149,7 @@ public class Bone {
                 originPosition.y + (relPivot.y / 16),
                 originPosition.z - (relPivot.z / 16)
         );
+        realPosition = position.clone();
     }
 
     public void render(Triple originPosition, Player player){
@@ -157,10 +165,16 @@ public class Bone {
 
             this.renderingPlayers.add(player);
 
-            PacketSender.sendPacket(player, PacketCreator.addItemDisplayPacket(spawnPosition, entityID));
-            ItemDisplayPacketData data =  new ItemDisplayPacketData();
-            data.setDisplayedItem(this.displayedItem);
-            PacketSender.sendPacket(player, PacketCreator.setItemDisplayDataPacket(data, entityID));
+            SpawnItemDisplayPacketData spawnItemDisplayPacketData = new SpawnItemDisplayPacketData();
+            spawnItemDisplayPacketData.setPosition(spawnPosition);
+            spawnItemDisplayPacketData.setEntityID(entityID);
+            PacketSender.queuePacket(spawnItemDisplayPacketData, player);
+
+            ItemDisplayDataPacketData itemDisplayDataPacketData =  new ItemDisplayDataPacketData();
+            itemDisplayDataPacketData.setDisplayedItem(this.displayedItem);
+            itemDisplayDataPacketData.setEntityID(entityID);
+            PacketSender.queuePacket(itemDisplayDataPacketData, player);
+
             Timer.GetById("modelSpawn").printCurrentTime("rendered by player: "+player.getName(), false);
 
             if (pivotPointDisplay == null){
@@ -196,8 +210,11 @@ public class Bone {
         if(!this.hasElement || !this.renderingPlayers.contains(player)){
             return;
         }
-        PacketSender.sendPacket(player,
-                PacketCreator.removeItemDisplaysPacket(entityID));
+
+        RemoveEntitiesPacketData removeEntitiesPacketData = new RemoveEntitiesPacketData();
+        removeEntitiesPacketData.addEntityID(entityID);
+        PacketSender.queuePacket(removeEntitiesPacketData, player);
+
         this.renderingPlayers.remove(player);
     }
 
@@ -250,6 +267,26 @@ public class Bone {
                 bone.resetLocation(display, true);
             }
         }
+    }
+
+    public List<PacketData> getPackets() {
+        return packets;
+    }
+
+    public void setPackets(List<PacketData> packets) {
+        this.packets = packets;
+    }
+
+    public void addPacket(PacketData packet){
+        packets.add(packet);
+    }
+
+    public void removePacket(PacketData packet){
+        packets.remove(packet);
+    }
+
+    public void clearPackets(){
+        packets.clear();
     }
 
     public Triple getRelOrigin() {
@@ -337,4 +374,11 @@ public class Bone {
         this.parentBone = parentBone;
     }
 
+    public Triple getRealPosition() {
+        return realPosition;
+    }
+
+    public void setRealPosition(Triple realPosition) {
+        this.realPosition = realPosition;
+    }
 }

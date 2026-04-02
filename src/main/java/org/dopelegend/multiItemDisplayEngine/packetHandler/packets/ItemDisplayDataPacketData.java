@@ -1,16 +1,15 @@
 package org.dopelegend.multiItemDisplayEngine.packetHandler.packets;
 
+import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
 import net.minecraft.network.syncher.EntityDataSerializer;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.item.ItemStack;
-import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
-import org.joml.Quaternionf;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ItemDisplayPacketData extends DisplayPacketData implements PacketData{
+public class ItemDisplayDataPacketData extends DisplayDataPacket implements PacketData{
     ItemStack displayedItem = null;
     Byte displayedType = Byte.MIN_VALUE;
 
@@ -30,7 +29,6 @@ public class ItemDisplayPacketData extends DisplayPacketData implements PacketDa
         this.displayedItem = ItemStack.fromBukkitCopy(displayedItem);
     }
 
-    @Override
     public List<SynchedEntityData.DataValue<?>> getPacketData(){
         List<SynchedEntityData.DataValue<?>> data = new ArrayList<>(super.getPacketData());
 
@@ -58,5 +56,19 @@ public class ItemDisplayPacketData extends DisplayPacketData implements PacketDa
         }
 
         return data;
+    }
+
+    /**
+     *
+     * Creates a ClientBoundSetEntityDataPacket, specifically for itemDisplays with all the given data.
+     *
+     * @return The ClientBoundSetEntityDataPacket
+     */
+    @Override
+    public ClientboundSetEntityDataPacket createPacket(){
+        return new ClientboundSetEntityDataPacket(
+                entityID,
+                getPacketData()
+        );
     }
 }
