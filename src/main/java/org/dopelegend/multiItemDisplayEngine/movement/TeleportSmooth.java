@@ -1,12 +1,9 @@
 package org.dopelegend.multiItemDisplayEngine.movement;
 
-import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
 import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
-import org.bukkit.entity.Player;
 import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
-import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketSender;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.ItemDisplayDataPacketData;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
@@ -18,16 +15,23 @@ public class TeleportSmooth {
      *
      * @param itemDisplayGroup The itemDisplayGroup to teleport.
      * @param location The location to teleport the itemDisplayGroup to.
-     * @param teleportDuration How long the teleport should take. (How long it should take for the itemDisplayGroup to get from start loc to end loc)
+     * @param interpolationDuration How long the teleport should take. (How long it should take for the itemDisplayGroup to get from start loc to end loc)
      */
-    public static void TeleportItemDisplayGroupSmooth(ItemDisplayGroup itemDisplayGroup, Location location, int teleportDuration){
+    public static void TeleportItemDisplayGroupSmooth(ItemDisplayGroup itemDisplayGroup, Location location, int interpolationDuration){
 
+        if (interpolationDuration <= 0){
+            Teleport.teleportItemDisplayGroup(itemDisplayGroup, location);
+        }
+        Triple relTranslation = Triple.difference(itemDisplayGroup.getPivotPoint(), location);
         for (Bone bone : itemDisplayGroup.getRootBone().getAllChildrenBones(true)){
             if(!bone.hasElement()) continue;
-            bone.getItemDisplay().setTeleportDuration(teleportDuration);
+            ItemDisplayDataPacketData translationPacket = new ItemDisplayDataPacketData();
+            translationPacket.setEntityID(bone.getEntityID());
+            translationPacket.setTranslation(relTranslation.toVector3f());
+            translationPacket.setTransformationInterpolationDuration(interpolationDuration);
+            bone.addPacket(translationPacket);
         }
-
-        itemDisplayGroup.teleport(location);
+        itemDisplayGroup.setPivotPoint(location);
     }
 
     /**

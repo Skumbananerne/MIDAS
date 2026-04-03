@@ -116,10 +116,27 @@ public class Triple {
         this.z = vector3fc.z();
     }
 
+    /**
+     *
+     * Gets the squared (to the power of two) distance between this Triple and another treated as points in 3d space.
+     *
+     * @param triple The triple to get the distance to.
+     * @return The distance squared.
+     */
     public double getDistanceSquared(Triple triple){
         return (triple.x-this.x)*(triple.x-this.x)
                 +(triple.y-this.y)*(triple.y-this.y)
                 +(triple.z-this.z)*(triple.z-this.z);
+    }
+
+    /**
+     *
+     * Returns true if and only if this Triple has 3 values equal to 0.
+     *
+     * @return whether this triple is empty.
+     */
+    public boolean isEmpty(){
+        return (x == 0.0 && y == 0.0 && z == 0.0);
     }
 
     /**
@@ -183,6 +200,28 @@ public class Triple {
     }
 
 
+    public double squaredSum() {
+        return x * x + y * y + z * z;
+    }
+
+    public boolean equals(Triple other){
+        return x == other.x && y == other.y && z == other.z;
+    }
+
+    public void set(double x, double y, double z){
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    /**
+     * Sets every value in this Triple to zero.
+     */
+    public void clear(){
+        this.x = 0;
+        this.y = 0;
+        this.z = 0;
+    }
     
     /**
      *

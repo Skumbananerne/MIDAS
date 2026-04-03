@@ -50,4 +50,12 @@ public class SpawnItemDisplayPacketData implements PacketData {
                 0
         );
     }
+
+    @Override
+    public SpawnItemDisplayPacketData clone(){
+        SpawnItemDisplayPacketData clone = new SpawnItemDisplayPacketData();
+        clone.setEntityID(entityID);
+        clone.setPosition(position.clone());
+        return clone;
+    }
 }

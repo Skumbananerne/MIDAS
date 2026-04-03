@@ -23,6 +23,8 @@ import org.dopelegend.multiItemDisplayEngine.rotation.Rotate;
 import org.dopelegend.multiItemDisplayEngine.rotation.RotateSmooth;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.EntityHandler;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
+import org.joml.Vector3f;
+import org.joml.Vector3fc;
 
 import java.io.File;
 import java.util.*;
@@ -42,6 +44,9 @@ import java.util.*;
     private final double teleportThreshold = viewRangeSquared/(3.0*3.0);
 
     private List<Player> renderingPlayers = new ArrayList<>();
+    /**
+     * This is the pivotPoint and therefore the location of this ItemDisplayGroup (Visually hopefully that doesn't mess anything up :D).
+     */
     private Location pivotPoint;
     private UUID uuid;
     private Bone rootBone;
@@ -139,44 +144,96 @@ import java.util.*;
      * Queues all packets from all bones in this itemDisplayGroup in the PacketSender.
      * Errors:
      * Doesn't do rotation (when trying to add make sure it can handle different centers of rotation).
-     * Will not work as expected if the entityDataPacket is an absolute value that overwrites the previous translation.
      */
     public void queueAllPackets(){
         for (Bone bone : rootBone.getAllChildrenBones(true)){
+            List<PacketData> addedData = new ArrayList<>();
             Triple relTranslation = new Triple(0, 0,0);
+            Triple relTeleportation = new Triple(0, 0, 0);
+            Triple offset = bone.getVisualOffset();
             // Sum all translations
             for (PacketData packetData : bone.getPackets()){
-                if (!(packetData instanceof ItemDisplayDataPacketData transformationPacketData)) continue;
-                relTranslation.add(new Triple(transformationPacketData.getTranslation()));
+                if (packetData instanceof ItemDisplayDataPacketData transformationPacketData) {
+                    ItemDisplayDataPacketData currentData = transformationPacketData.clone();
+
+                    if(transformationPacketData.getTransformationInterpolationDuration() > 1){
+                        ItemDisplayDataPacketData additionalData = new ItemDisplayDataPacketData();
+
+                        Vector3f currentVector = new Vector3f();
+                        currentData.setTranslation(transformationPacketData.getTranslation().div(
+                                transformationPacketData.getTransformationInterpolationDuration(),
+                                currentVector
+                        ));
+                        currentData.setTransformationInterpolationDuration(1);
+
+                        Vector3f additionalVector = new Vector3f();
+                        additionalData.setTranslation(transformationPacketData.getTranslation().sub(currentData.getTranslation(), additionalVector));
+                        additionalData.setTransformationInterpolationDuration(transformationPacketData.getTransformationInterpolationDuration() - 1);
+
+                        addedData.add(additionalData);
+                    }
+                    relTranslation.add(new Triple(currentData.getTranslation()));
+                }
+                else if (packetData instanceof TeleportEntityPacketData teleportEntityPacketData) {
+                    relTeleportation.add(teleportEntityPacketData.getRelCoords());
+                }
             }
-            // Reset position if it's outside teleportThreshold
-            if (relTranslation.add(bone.getPosition()).getDistanceSquared(bone.getRealPosition()) >= teleportThreshold){
+
+            // Send teleport packet
+            if (!relTeleportation.isEmpty()){
                 TeleportEntityPacketData teleportPacket = new TeleportEntityPacketData();
-                teleportPacket.setRelCoords(Triple.difference(bone.getRealPosition(), bone.getPosition()));
+                teleportPacket.setRelCoords(relTeleportation);
                 teleportPacket.setEntityID(bone.getEntityID());
+                PacketSender.queuePacket(teleportPacket, bone.getRenderingPlayers());
+            }
+
+//            MultiItemDisplayEngine.plugin.getLogger().info("Offset: "+offset);
+//            MultiItemDisplayEngine.plugin.getLogger().info("relTranslation "+relTranslation);
+            Triple offsetWithTranslation = offset.clone().add(relTranslation);
+
+
+            // Reset position if it's outside teleportThreshold
+            if (offsetWithTranslation.clone().squaredSum() >= teleportThreshold){
+                TeleportEntityPacketData teleportResetPacket = new TeleportEntityPacketData();
+                teleportResetPacket.setRelCoords(offset.clone());
+                teleportResetPacket.setEntityID(bone.getEntityID());
 
                 ItemDisplayDataPacketData translationPacket = new ItemDisplayDataPacketData();
-                translationPacket.setTranslation(Triple.difference(bone.getPosition(), bone.getRealPosition()).add(relTranslation).toVector3f());
+                translationPacket.setTranslation(relTranslation.toVector3f());
                 translationPacket.setEntityID(bone.getEntityID());
                 translationPacket.setInterpolationDelay(0);
-                translationPacket.setTransformationInterpolationDuration(1);
+                translationPacket.setTransformationInterpolationDuration(0);
 
-                PacketSender.queuePacket(translationPacket, renderingPlayers);
-                PacketSender.queuePacket(teleportPacket, renderingPlayers);
+                PacketSender.queuePacket(translationPacket, bone.getRenderingPlayers());
+                PacketSender.queuePacket(teleportResetPacket, bone.getRenderingPlayers());
+
+                bone.setVisualOffset(new Triple(0, 0, 0));
 
                 bone.clearPackets();
+
+                for(PacketData data : addedData){
+                    bone.addPacket(data);
+                }
                 continue;
             }
 
             // Send combined dataPacket
-            ItemDisplayDataPacketData bonePacket = new ItemDisplayDataPacketData();
-            bonePacket.setTranslation(relTranslation.toVector3f());
-            bonePacket.setEntityID(bone.getEntityID());
-            bonePacket.setInterpolationDelay(0);
-            bonePacket.setTransformationInterpolationDuration(1);
-            PacketSender.queuePacket(bonePacket, renderingPlayers);
+            if (!relTranslation.isEmpty()){
+                ItemDisplayDataPacketData bonePacket = new ItemDisplayDataPacketData();
+                bonePacket.setTranslation(offsetWithTranslation.clone().toVector3f());
+                bonePacket.setEntityID(bone.getEntityID());
+                bonePacket.setInterpolationDelay(0);
+                bonePacket.setTransformationInterpolationDuration(1);
 
-            bone.clearPackets();
+                bone.setVisualOffset(offsetWithTranslation.clone());
+                PacketSender.queuePacket(bonePacket, bone.getRenderingPlayers());
+//                MultiItemDisplayEngine.plugin.getLogger().info("Send packet with: "+offsetWithTranslation);
+                bone.clearPackets();
+
+                for(PacketData data : addedData){
+                    bone.addPacket(data);
+                }
+            }
         }
     }
 

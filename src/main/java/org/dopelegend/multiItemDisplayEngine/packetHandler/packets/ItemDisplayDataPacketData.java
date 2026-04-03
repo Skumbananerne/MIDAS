@@ -28,6 +28,9 @@ public class ItemDisplayDataPacketData extends DisplayDataPacket implements Pack
     public void setDisplayedItem(org.bukkit.inventory.ItemStack displayedItem) {
         this.displayedItem = ItemStack.fromBukkitCopy(displayedItem);
     }
+    public void setDisplayedItem(ItemStack displayedItem) {
+        this.displayedItem = displayedItem;
+    }
 
     public List<SynchedEntityData.DataValue<?>> getPacketData(){
         List<SynchedEntityData.DataValue<?>> data = new ArrayList<>(super.getPacketData());
@@ -70,5 +73,29 @@ public class ItemDisplayDataPacketData extends DisplayDataPacket implements Pack
                 entityID,
                 getPacketData()
         );
+    }
+
+    @Override
+    public ItemDisplayDataPacketData clone(){
+        ItemDisplayDataPacketData clone = new ItemDisplayDataPacketData();
+        clone.setBillboardConstraint(billboardConstraint);
+        clone.setHeight(height);
+        clone.setBrightnessOverride(brightnessOverride);
+        clone.setEntityID(entityID);
+        clone.setScale(scale);
+        clone.setGlowColorOverride(glowColorOverride);
+        clone.setRotationLeft(rotationLeft);
+        clone.setRotationRight(rotationRight);
+        clone.setShadowRadius(shadowRadius);
+        clone.setShadowStrength(shadowStrength);
+        clone.setTeleportInterpolationDuration(teleportInterpolationDuration);
+        clone.setInterpolationDelay(interpolationDelay);
+        clone.setTransformationInterpolationDuration(transformationInterpolationDuration);
+        clone.setTranslation(translation);
+        clone.setViewRange(viewRange);
+        clone.setWidth(width);
+        clone.setDisplayedItem(displayedItem);
+        clone.setDisplayedType(displayedType);
+        return clone;
     }
 }

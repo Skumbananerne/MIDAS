@@ -54,11 +54,9 @@ public class ModelCommand {
         new BukkitRunnable() {
             @Override
             public void run() {
-                timer.printCurrentTime("Running task", false);
-                TeleportSmooth.TeleportSingleBoneSmooth(itemDisplayGroup.getRootBone(), teleportLoc.add(0, 1, 0), 20);
-                timer.printCurrentTime("Teleported entity", false);
+                itemDisplayGroup.teleportSmooth(itemDisplayGroup.getPivotPoint().clone().add(0.25, 0, 0), 5);
             }
-        }.runTaskLater(MultiItemDisplayEngine.plugin, 1L);
+        }.runTaskTimer(MultiItemDisplayEngine.plugin, 10L, 5L);
 
         return 1;
     }
@@ -191,7 +189,7 @@ public class ModelCommand {
         itemDisplayDataPacketData.setInterpolationDelay(0);
 
         ItemDisplayDataPacketData itemDisplayDataPacketData2 = new ItemDisplayDataPacketData();
-        itemDisplayDataPacketData2.setTranslation(new Vector3f(0, 0, 0));
+        itemDisplayDataPacketData2.setTranslation(new Vector3f(5, 0, 0));
         itemDisplayDataPacketData2.setTransformationInterpolationDuration(0);
         itemDisplayDataPacketData2.setInterpolationDelay(0);
         itemDisplayDataPacketData2.setEntityID(currentTestId);

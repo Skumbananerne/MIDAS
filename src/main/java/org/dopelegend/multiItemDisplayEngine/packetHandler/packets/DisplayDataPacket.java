@@ -343,4 +343,26 @@ public class DisplayDataPacket implements PacketData{
                 getPacketData()
         );
     }
+
+    @Override
+    public DisplayDataPacket clone() {
+        DisplayDataPacket clone = new DisplayDataPacket();
+        clone.setBillboardConstraint(billboardConstraint);
+        clone.setHeight(height);
+        clone.setBrightnessOverride(brightnessOverride);
+        clone.setEntityID(entityID);
+        clone.setScale(scale);
+        clone.setGlowColorOverride(glowColorOverride);
+        clone.setRotationLeft(rotationLeft);
+        clone.setRotationRight(rotationRight);
+        clone.setShadowRadius(shadowRadius);
+        clone.setShadowStrength(shadowStrength);
+        clone.setTeleportInterpolationDuration(teleportInterpolationDuration);
+        clone.setInterpolationDelay(interpolationDelay);
+        clone.setTransformationInterpolationDuration(transformationInterpolationDuration);
+        clone.setTranslation(translation);
+        clone.setViewRange(viewRange);
+        clone.setWidth(width);
+        return clone;
+    }
 }

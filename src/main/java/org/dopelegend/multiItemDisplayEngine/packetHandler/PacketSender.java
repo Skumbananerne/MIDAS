@@ -61,12 +61,6 @@ public class PacketSender {
             if(player == null) continue;
             if(!player.isOnline()) continue;
 
-            sendPacket(player, new ClientboundBundleDelimiterPacket());
-            for (Packet<?> packet : packetQueue.get(entry.getKey())){
-                sendPacket(player, packet);
-            }
-            sendPacket(player, new ClientboundBundleDelimiterPacket());
-
             sendPacket(player, entry.getValue());
         }
 

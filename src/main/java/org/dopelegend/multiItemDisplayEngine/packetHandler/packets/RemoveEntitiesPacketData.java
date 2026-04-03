@@ -2,10 +2,11 @@ package org.dopelegend.multiItemDisplayEngine.packetHandler.packets;
 
 import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket;
 
+import java.util.HashSet;
 import java.util.Set;
 
 public class RemoveEntitiesPacketData implements PacketData {
-    Set<Integer> entityIds;
+    Set<Integer> entityIds = new HashSet<>();
 
     public Set<Integer> getEntityIds() {
         return entityIds;
@@ -32,5 +33,12 @@ public class RemoveEntitiesPacketData implements PacketData {
     @Override
     public ClientboundRemoveEntitiesPacket createPacket(){
         return new ClientboundRemoveEntitiesPacket(entityIds.stream().mapToInt(Integer::intValue).toArray());
+    }
+
+    @Override
+    public RemoveEntitiesPacketData clone(){
+        RemoveEntitiesPacketData clone = new RemoveEntitiesPacketData();
+        clone.setEntityIds(entityIds);
+        return clone;
     }
 }

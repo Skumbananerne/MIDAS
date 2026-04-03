@@ -60,13 +60,13 @@ public class Bone {
     private ItemDisplay pivotPointDisplay;
 
     /**
-     * The world coordinates of this bone (visually).
+     * The world coordinates of this bone (real coordinates without offset).
      */
     private Triple position;
     /**
-     * The world coordinates of this bone without translation (real).
+     * The visual offset of this bone from its real position (translation).
      */
-    private Triple realPosition;
+    private Triple visualOffset;
 
     boolean hasElement = false;
     List<Player> renderingPlayers = new ArrayList<>();
@@ -149,7 +149,7 @@ public class Bone {
                 originPosition.y + (relPivot.y / 16),
                 originPosition.z - (relPivot.z / 16)
         );
-        realPosition = position.clone();
+        visualOffset = new Triple(0, 0, 0);
     }
 
     public void render(Triple originPosition, Player player){
@@ -374,11 +374,11 @@ public class Bone {
         this.parentBone = parentBone;
     }
 
-    public Triple getRealPosition() {
-        return realPosition;
+    public Triple getVisualOffset() {
+        return visualOffset;
     }
 
-    public void setRealPosition(Triple realPosition) {
-        this.realPosition = realPosition;
+    public void setVisualOffset(Triple visualOffset) {
+        this.visualOffset = visualOffset;
     }
 }

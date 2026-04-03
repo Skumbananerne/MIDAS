@@ -38,4 +38,12 @@ public class TeleportEntityPacketData implements PacketData {
                 false
         );
     }
+
+    @Override
+    public TeleportEntityPacketData clone(){
+        TeleportEntityPacketData clone = new TeleportEntityPacketData();
+        clone.setRelCoords(relCoords.clone());
+        clone.setEntityID(entityID);
+        return clone;
+    }
 }
