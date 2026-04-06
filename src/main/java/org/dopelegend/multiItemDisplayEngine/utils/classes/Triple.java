@@ -157,6 +157,32 @@ public class Triple {
      * Makes a new Triple equal to the translation (distance on three axes / displacement) from a to b, or more formally the translation which 'from' needs to be translated to be at the exact position of 'to'.
      * The output is calculated following the following formula: A + T = B, T = B - A. Where A is 'from', B is 'to' and T is the returned Triple.
      *
+     * @param from The Triple you're coming from
+     * @param to The Location you're going to.
+     * @return A new triple with all three values being equal to the translation from a (from) to b (to).
+     */
+    public static Triple difference(Triple from, Location to) {
+        return new Triple(to.x() - from.x, to.y() - from.y, to.z() - from.z);
+    }
+
+    /**
+     *
+     * Makes a new Triple equal to the translation (distance on three axes / displacement) from a to b, or more formally the translation which 'from' needs to be translated to be at the exact position of 'to'.
+     * The output is calculated following the following formula: A + T = B, T = B - A. Where A is 'from', B is 'to' and T is the returned Triple.
+     *
+     * @param from The Location you're coming from
+     * @param to The Triple you're going to.
+     * @return A new triple with all three values being equal to the translation from a (from) to b (to).
+     */
+    public static Triple difference(Location from, Triple to) {
+        return new Triple(to.x - from.x(), to.y - from.y(), to.z - from.z());
+    }
+
+    /**
+     *
+     * Makes a new Triple equal to the translation (distance on three axes / displacement) from a to b, or more formally the translation which 'from' needs to be translated to be at the exact position of 'to'.
+     * The output is calculated following the following formula: A + T = B, T = B - A. Where A is 'from', B is 'to' and T is the returned Triple.
+     *
      * @param from The Location you're coming from
      * @param to The Location you're going to.
      * @return A new triple with all three values being equal to the translation from a (from) to b (to).

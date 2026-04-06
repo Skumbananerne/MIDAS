@@ -248,7 +248,7 @@ public class Bone {
      * Resets the bones location relative to the defined ItemDisplay with children
      *
      * @param display the ItemDisplay to reset relative to
-     * @param withChildren Should the children bones also have their rotation reset
+     * @param withChildren Should the children bones also be reset
      */
     public void resetLocation(ItemDisplayGroup display, boolean withChildren){
         resetLocation(display);

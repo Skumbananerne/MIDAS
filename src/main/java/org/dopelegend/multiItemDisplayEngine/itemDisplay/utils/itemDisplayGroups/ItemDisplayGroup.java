@@ -143,7 +143,7 @@ import java.util.*;
     /**
      * Queues all packets from all bones in this itemDisplayGroup in the PacketSender.
      * Errors:
-     * Doesn't do rotation (when trying to add make sure it can handle different centers of rotation).
+     * Doesn't do rotation (when trying to add make sure it can handle different centers of rotation) this can be done my using matrix multiplication i think.
      */
     public void queueAllPackets(){
         for (Bone bone : rootBone.getAllChildrenBones(true)){
@@ -179,6 +179,8 @@ import java.util.*;
                 }
             }
 
+            bone.clearPackets();
+
             // Send teleport packet
             if (!relTeleportation.isEmpty()){
                 TeleportEntityPacketData teleportPacket = new TeleportEntityPacketData();
@@ -209,8 +211,6 @@ import java.util.*;
 
                 bone.setVisualOffset(new Triple(0, 0, 0));
 
-                bone.clearPackets();
-
                 for(PacketData data : addedData){
                     bone.addPacket(data);
                 }
@@ -228,7 +228,6 @@ import java.util.*;
                 bone.setVisualOffset(offsetWithTranslation.clone());
                 PacketSender.queuePacket(bonePacket, bone.getRenderingPlayers());
 //                MultiItemDisplayEngine.plugin.getLogger().info("Send packet with: "+offsetWithTranslation);
-                bone.clearPackets();
 
                 for(PacketData data : addedData){
                     bone.addPacket(data);

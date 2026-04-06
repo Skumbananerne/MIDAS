@@ -54,7 +54,9 @@ public class ModelCommand {
         new BukkitRunnable() {
             @Override
             public void run() {
-                itemDisplayGroup.teleportSmooth(itemDisplayGroup.getPivotPoint().clone().add(0.25, 0, 0), 5);
+                if (itemDisplayGroup.isDestroyed()) this.cancel();
+                MultiItemDisplayEngine.plugin.getLogger().info("Target Location:"+itemDisplayGroup.getPivotPoint().clone().add(0.25, 0, 0));
+                itemDisplayGroup.teleport(itemDisplayGroup.getPivotPoint().clone().add(0.25, 0, 0));
             }
         }.runTaskTimer(MultiItemDisplayEngine.plugin, 10L, 5L);
 
