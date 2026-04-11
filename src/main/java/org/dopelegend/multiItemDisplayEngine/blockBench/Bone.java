@@ -66,7 +66,7 @@ public class Bone {
     /**
      * The visual offset of this bone from its real position (translation).
      */
-    private Triple visualOffset;
+    private Triple visualOffset = new Triple(0, 0, 0);
 
     boolean hasElement = false;
     List<Player> renderingPlayers = new ArrayList<>();

@@ -1,12 +1,11 @@
 package org.dopelegend.multiItemDisplayEngine.packetHandler.packets;
 
-import net.minecraft.network.protocol.Packet;
+import com.mojang.math.Transformation;
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
 import net.minecraft.network.syncher.EntityDataSerializer;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
-import org.joml.Quaternionfc;
-import org.joml.Vector3fc;
+import org.joml.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,11 +17,7 @@ public class DisplayDataPacket implements PacketData{
 
     int entityID;
 
-    Vector3fc translation = null;
-    Vector3fc scale = null;
-
-    Quaternionfc rotationLeft = null;
-    Quaternionfc rotationRight = null;
+    Matrix4f rotMatrix = new Matrix4f();
 
     Byte billboardConstraint = Byte.MIN_VALUE;
     int brightnessOverride = Integer.MIN_VALUE;
@@ -35,6 +30,15 @@ public class DisplayDataPacket implements PacketData{
     float height = Float.MIN_VALUE;
 
     int glowColorOverride = Integer.MIN_VALUE;
+
+
+    public Matrix4f getRotMatrix() {
+        return rotMatrix;
+    }
+
+    public void setRotMatrix(Matrix4f rotMatrix) {
+        this.rotMatrix = rotMatrix;
+    }
 
     public int getInterpolationDelay() {
         return interpolationDelay;
@@ -61,35 +65,21 @@ public class DisplayDataPacket implements PacketData{
     }
 
     public Vector3fc getTranslation() {
-        return translation;
+        Vector3f dest = new Vector3f();
+        return rotMatrix.getTranslation(dest);
     }
 
     public void setTranslation(Vector3fc translation) {
-        this.translation = translation;
+        this.rotMatrix.translate(translation);
     }
 
     public Vector3fc getScale() {
-        return scale;
+        Vector3f dest = new Vector3f();
+        return this.rotMatrix.getScale(dest);
     }
 
     public void setScale(Vector3fc scale) {
-        this.scale = scale;
-    }
-
-    public Quaternionfc getRotationLeft() {
-        return rotationLeft;
-    }
-
-    public void setRotationLeft(Quaternionfc rotationLeft) {
-        this.rotationLeft = rotationLeft;
-    }
-
-    public Quaternionfc getRotationRight() {
-        return rotationRight;
-    }
-
-    public void setRotationRight(Quaternionfc rotationRight) {
-        this.rotationRight = rotationRight;
+        this.rotMatrix.scale(scale);
     }
 
     public Byte getBillboardConstraint() {
@@ -165,6 +155,8 @@ public class DisplayDataPacket implements PacketData{
     }
 
     public List<SynchedEntityData.DataValue<?>> getPacketData(){
+        Transformation transformation = new Transformation(rotMatrix);
+
         List<SynchedEntityData.DataValue<?>> data = new ArrayList<>();
 
         if(interpolationDelay != Integer.MIN_VALUE){
@@ -200,47 +192,47 @@ public class DisplayDataPacket implements PacketData{
 
             data.add(item);
         }
-        if(translation != null){
+        if(transformation.getTranslation() != null){
             EntityDataSerializer<Vector3fc> serializer = EntityDataSerializers.VECTOR3;
 
             SynchedEntityData.DataValue<Vector3fc> item =
                     new SynchedEntityData.DataValue<>(
                             11,
                             serializer,
-                            translation);
+                            transformation.getTranslation());
 
             data.add(item);
         }
-        if(scale != null){
+        if(transformation.getScale() != null){
             EntityDataSerializer<Vector3fc> serializer = EntityDataSerializers.VECTOR3;
 
             SynchedEntityData.DataValue<Vector3fc> item =
                     new SynchedEntityData.DataValue<>(
                             12,
                             serializer,
-                            scale);
+                            transformation.getScale());
 
             data.add(item);
         }
-        if(rotationLeft != null){
+        if(transformation.getLeftRotation() != null){
             EntityDataSerializer<Quaternionfc> serializer = EntityDataSerializers.QUATERNION;
 
             SynchedEntityData.DataValue<Quaternionfc> item =
                     new SynchedEntityData.DataValue<>(
                             13,
                             serializer,
-                            rotationLeft);
+                            transformation.getLeftRotation());
 
             data.add(item);
         }
-        if(rotationRight != null){
+        if(transformation.getRightRotation() != null){
             EntityDataSerializer<Quaternionfc> serializer = EntityDataSerializers.QUATERNION;
 
             SynchedEntityData.DataValue<Quaternionfc> item =
                     new SynchedEntityData.DataValue<>(
                             14,
                             serializer,
-                            rotationRight);
+                            transformation.getRightRotation());
 
             data.add(item);
         }
@@ -351,18 +343,15 @@ public class DisplayDataPacket implements PacketData{
         clone.setHeight(height);
         clone.setBrightnessOverride(brightnessOverride);
         clone.setEntityID(entityID);
-        clone.setScale(scale);
         clone.setGlowColorOverride(glowColorOverride);
-        clone.setRotationLeft(rotationLeft);
-        clone.setRotationRight(rotationRight);
         clone.setShadowRadius(shadowRadius);
         clone.setShadowStrength(shadowStrength);
         clone.setTeleportInterpolationDuration(teleportInterpolationDuration);
         clone.setInterpolationDelay(interpolationDelay);
         clone.setTransformationInterpolationDuration(transformationInterpolationDuration);
-        clone.setTranslation(translation);
         clone.setViewRange(viewRange);
         clone.setWidth(width);
+        clone.setRotMatrix(rotMatrix);
         return clone;
     }
 }

@@ -50,15 +50,15 @@ public class ModelCommand {
 
         Location teleportLoc = new Location(player.getWorld(), 0.5, 1.5 ,0.5);
 
-        timer.printCurrentTime("Instant", false);
+//        itemDisplayGroup.playAnimation("animation");
         new BukkitRunnable() {
             @Override
             public void run() {
                 if (itemDisplayGroup.isDestroyed()) this.cancel();
                 MultiItemDisplayEngine.plugin.getLogger().info("Target Location:"+itemDisplayGroup.getPivotPoint().clone().add(0.25, 0, 0));
-                itemDisplayGroup.teleport(itemDisplayGroup.getPivotPoint().clone().add(0.25, 0, 0));
+                itemDisplayGroup.teleportSmooth(itemDisplayGroup.getPivotPoint().clone().add( 0.5, 0, 0), 1);
             }
-        }.runTaskTimer(MultiItemDisplayEngine.plugin, 10L, 5L);
+        }.runTaskTimer(MultiItemDisplayEngine.plugin, 10L, 1L);
 
         return 1;
     }

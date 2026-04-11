@@ -82,20 +82,17 @@ public class ItemDisplayDataPacketData extends DisplayDataPacket implements Pack
         clone.setHeight(height);
         clone.setBrightnessOverride(brightnessOverride);
         clone.setEntityID(entityID);
-        clone.setScale(scale);
         clone.setGlowColorOverride(glowColorOverride);
-        clone.setRotationLeft(rotationLeft);
-        clone.setRotationRight(rotationRight);
         clone.setShadowRadius(shadowRadius);
         clone.setShadowStrength(shadowStrength);
         clone.setTeleportInterpolationDuration(teleportInterpolationDuration);
         clone.setInterpolationDelay(interpolationDelay);
         clone.setTransformationInterpolationDuration(transformationInterpolationDuration);
-        clone.setTranslation(translation);
         clone.setViewRange(viewRange);
         clone.setWidth(width);
         clone.setDisplayedItem(displayedItem);
         clone.setDisplayedType(displayedType);
+        clone.setRotMatrix(rotMatrix);
         return clone;
     }
 }

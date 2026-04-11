@@ -8,6 +8,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
 import org.dopelegend.multiItemDisplayEngine.blockBench.FileReader;
@@ -23,6 +24,7 @@ import org.dopelegend.multiItemDisplayEngine.rotation.Rotate;
 import org.dopelegend.multiItemDisplayEngine.rotation.RotateSmooth;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.EntityHandler;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
+import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
 
@@ -151,32 +153,39 @@ import java.util.*;
             Triple relTranslation = new Triple(0, 0,0);
             Triple relTeleportation = new Triple(0, 0, 0);
             Triple offset = bone.getVisualOffset();
+            List<ItemDisplayDataPacketData> itemDisplayDataPacketData = new ArrayList<>();
             // Sum all translations
             for (PacketData packetData : bone.getPackets()){
                 if (packetData instanceof ItemDisplayDataPacketData transformationPacketData) {
-                    ItemDisplayDataPacketData currentData = transformationPacketData.clone();
-
-                    if(transformationPacketData.getTransformationInterpolationDuration() > 1){
-                        ItemDisplayDataPacketData additionalData = new ItemDisplayDataPacketData();
-
-                        Vector3f currentVector = new Vector3f();
-                        currentData.setTranslation(transformationPacketData.getTranslation().div(
-                                transformationPacketData.getTransformationInterpolationDuration(),
-                                currentVector
-                        ));
-                        currentData.setTransformationInterpolationDuration(1);
-
-                        Vector3f additionalVector = new Vector3f();
-                        additionalData.setTranslation(transformationPacketData.getTranslation().sub(currentData.getTranslation(), additionalVector));
-                        additionalData.setTransformationInterpolationDuration(transformationPacketData.getTransformationInterpolationDuration() - 1);
-
-                        addedData.add(additionalData);
-                    }
-                    relTranslation.add(new Triple(currentData.getTranslation()));
+//                    ItemDisplayDataPacketData currentData = transformationPacketData.clone();
+                    itemDisplayDataPacketData.add(transformationPacketData);
+//                    if(transformationPacketData.getTransformationInterpolationDuration() > 1){
+//                        ItemDisplayDataPacketData additionalData = new ItemDisplayDataPacketData();
+//
+//                        Vector3f currentVector = new Vector3f();
+//                        currentData.setTranslation(transformationPacketData.getTranslation().div(
+//                                transformationPacketData.getTransformationInterpolationDuration(),
+//                                currentVector
+//                        ));
+//                        currentData.setTransformationInterpolationDuration(1);
+//
+//                        Vector3f additionalVector = new Vector3f();
+//                        additionalData.setTranslation(transformationPacketData.getTranslation().sub(currentData.getTranslation(), additionalVector));
+//                        additionalData.setTransformationInterpolationDuration(transformationPacketData.getTransformationInterpolationDuration() - 1);
+//
+//                        addedData.add(additionalData);
+//                    }
+//                    relTranslation.add(new Triple(currentData.getTranslation()));
                 }
                 else if (packetData instanceof TeleportEntityPacketData teleportEntityPacketData) {
                     relTeleportation.add(teleportEntityPacketData.getRelCoords());
                 }
+            }
+
+            // Loop through itemDisplayPacketData and multiply matrices.
+            Matrix4f identityMatrix = new Matrix4f();
+            for (int i = itemDisplayDataPacketData.size()-1 ; i >= 0 ; i--){
+                identityMatrix.mul(itemDisplayDataPacketData.get(i).getRotMatrix());
             }
 
             bone.clearPackets();
@@ -191,7 +200,9 @@ import java.util.*;
 
 //            MultiItemDisplayEngine.plugin.getLogger().info("Offset: "+offset);
 //            MultiItemDisplayEngine.plugin.getLogger().info("relTranslation "+relTranslation);
-            Triple offsetWithTranslation = offset.clone().add(relTranslation);
+            Vector3f dest = new Vector3f();
+            identityMatrix.getTranslation(dest);
+            Triple offsetWithTranslation = offset.clone().add(new Triple(dest));
 
 
             // Reset position if it's outside teleportThreshold
@@ -201,7 +212,7 @@ import java.util.*;
                 teleportResetPacket.setEntityID(bone.getEntityID());
 
                 ItemDisplayDataPacketData translationPacket = new ItemDisplayDataPacketData();
-                translationPacket.setTranslation(relTranslation.toVector3f());
+                translationPacket.setTranslation(dest);
                 translationPacket.setEntityID(bone.getEntityID());
                 translationPacket.setInterpolationDelay(0);
                 translationPacket.setTransformationInterpolationDuration(0);
@@ -218,9 +229,9 @@ import java.util.*;
             }
 
             // Send combined dataPacket
-            if (!relTranslation.isEmpty()){
+            if (!identityMatrix.equals(new Matrix4f())){
                 ItemDisplayDataPacketData bonePacket = new ItemDisplayDataPacketData();
-                bonePacket.setTranslation(offsetWithTranslation.clone().toVector3f());
+                bonePacket.setRotMatrix(identityMatrix.translate(bone.getVisualOffset().toVector3f()));
                 bonePacket.setEntityID(bone.getEntityID());
                 bonePacket.setInterpolationDelay(0);
                 bonePacket.setTransformationInterpolationDuration(1);
