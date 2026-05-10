@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
+import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
 import org.dopelegend.multiItemDisplayEngine.blockBench.generator.TexturePack;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.movement.TeleportSmooth;
@@ -49,14 +50,17 @@ public class ModelCommand {
         timer.printCurrentTime("before teleport", false);
 
         Location teleportLoc = new Location(player.getWorld(), 0.5, 1.5 ,0.5);
+        Triple rotation = new Triple(0, 10, 0);
+        Triple translation = new Triple(0.3, 0,0);
 
 //        itemDisplayGroup.playAnimation("animation");
         new BukkitRunnable() {
             @Override
             public void run() {
+                rotation.add(new Triple(0, 10, 0));
                 if (itemDisplayGroup.isDestroyed()) this.cancel();
-                MultiItemDisplayEngine.plugin.getLogger().info("Target Location:"+itemDisplayGroup.getPivotPoint().clone().add(0.25, 0, 0));
-                itemDisplayGroup.teleportSmooth(itemDisplayGroup.getPivotPoint().clone().add( 0.5, 0, 0), 1);
+                //itemDisplayGroup.setRotation(rotation);
+                itemDisplayGroup.teleportRelativeSmooth(translation, 1);
             }
         }.runTaskTimer(MultiItemDisplayEngine.plugin, 10L, 1L);
 
@@ -100,23 +104,89 @@ public class ModelCommand {
     }
 
     public static int deleteItemDisplayGroup(CommandContext<CommandSourceStack> ctx, boolean single) {
-        if(single){
-            UUID uuid = UUID.fromString(ctx.getArgument("group uuid", String.class));
-            ItemDisplayGroup group = ItemDisplayGroup.getItemDisplayGroup(uuid);
+        try {
+            if(single){
+                UUID uuid = UUID.fromString(ctx.getArgument("group uuid", String.class));
+                ItemDisplayGroup group = ItemDisplayGroup.getItemDisplayGroup(uuid);
 
-            if(group != null){
-                group.destroy();
+                if(group != null){
+                    group.destroy();
+                    return 0;
+                }
+                ctx.getSource().getSender().sendRichMessage("<red><bold>Could not find a group with that uuid");
+            } else {
+                List<ItemDisplayGroup> groups = new ArrayList<>(ItemDisplayGroup.getAllItemDisplayGroups());
+                for(ItemDisplayGroup group : groups){
+                    group.destroy();
+                }
                 return 0;
             }
+            return 1;
+        } catch (IllegalArgumentException e){
             ctx.getSource().getSender().sendRichMessage("<red><bold>Could not find a group with that uuid");
-        } else {
-            List<ItemDisplayGroup> groups = new ArrayList<>(ItemDisplayGroup.getAllItemDisplayGroups());
-            for(ItemDisplayGroup group : groups){
-                group.destroy();
-            }
-            return 0;
+            return 1;
         }
-        return 1;
+    }
+
+    public static int getItemDisplayGroupInfo(CommandContext<CommandSourceStack> ctx) {
+        Player player = (Player) ctx.getSource().getSender();
+
+        try {
+            UUID uuid = UUID.fromString(ctx.getArgument("group uuid", String.class));
+
+            ItemDisplayGroup group = ItemDisplayGroup.getItemDisplayGroup(uuid);
+
+            if (group != null) {
+
+                Bone rootBone = group.getRootBone();
+
+                player.sendRichMessage("<gray>======== <gold><bold>ItemDisplayGroup Info</bold></gold> <gray>========");
+
+                player.sendRichMessage("<yellow>UUID: <white>" + group.getUuid());
+
+                player.sendRichMessage("<yellow>View Range: <aqua>" + group.getViewRange());
+
+                player.sendRichMessage("<yellow>View Range Squared: <aqua>" + group.getViewRangeSquared());
+
+                player.sendRichMessage("<yellow>Animation State: <green>" + group.getAnimationState());
+
+                player.sendRichMessage("<yellow>Pivot Point: <light_purple>" + group.getPivotPoint());
+
+                player.sendRichMessage("<gray>-------- <gold><bold>Root Bone</bold></gold> <gray>--------");
+
+                player.sendRichMessage("<yellow>Position: <white>" + rootBone.getPosition());
+
+                player.sendRichMessage("<yellow>Visual Offset: <white>" + rootBone.getVisualOffset());
+
+                player.sendRichMessage("<yellow>Rendering Players: <green>" + rootBone.getRenderingPlayers());
+
+                player.sendRichMessage("<yellow>Current Rotation: <aqua>" + rootBone.getCurrentRotation());
+
+                player.sendRichMessage("<yellow>Entity ID: <red>" + rootBone.getEntityID());
+
+                player.sendRichMessage("<yellow>Relative Origin: <light_purple>" + rootBone.getRelOrigin());
+
+                player.sendRichMessage("<yellow>Transformation Matrix:");
+                Vector3f rot = new Vector3f();
+                rootBone.getTransformationMatrix().getEulerAnglesXYZ(rot);
+                Vector3f scale = new Vector3f();
+                rootBone.getTransformationMatrix().getScale(scale);
+
+                player.sendRichMessage("<yellow>Matrix rotation: <gray>" + rot);
+                player.sendRichMessage("<yellow>Matrix scale: <gray>" + scale);
+
+                player.sendRichMessage("<yellow>Bone UUID: <white>" + rootBone.getUUID());
+
+                player.sendRichMessage("<gray>====================================");
+
+                return 0;
+            }
+            player.sendRichMessage("<red><bold>Could not find a group with that uuid");
+            return 1;
+        } catch (IllegalArgumentException e) {
+            player.sendRichMessage("<red><bold>Could not find a group with that uuid");
+            return 1;
+        }
     }
 
     public static CompletableFuture<Suggestions> suggestModels(

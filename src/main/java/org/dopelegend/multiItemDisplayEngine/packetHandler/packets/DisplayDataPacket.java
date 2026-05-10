@@ -192,47 +192,47 @@ public class DisplayDataPacket implements PacketData{
 
             data.add(item);
         }
-        if(transformation.getTranslation() != null){
+        if(transformation.translation() != null){
             EntityDataSerializer<Vector3fc> serializer = EntityDataSerializers.VECTOR3;
 
             SynchedEntityData.DataValue<Vector3fc> item =
                     new SynchedEntityData.DataValue<>(
                             11,
                             serializer,
-                            transformation.getTranslation());
+                            transformation.translation());
 
             data.add(item);
         }
-        if(transformation.getScale() != null){
+        if(transformation.scale() != null){
             EntityDataSerializer<Vector3fc> serializer = EntityDataSerializers.VECTOR3;
 
             SynchedEntityData.DataValue<Vector3fc> item =
                     new SynchedEntityData.DataValue<>(
                             12,
                             serializer,
-                            transformation.getScale());
+                            transformation.scale());
 
             data.add(item);
         }
-        if(transformation.getLeftRotation() != null){
+        if(transformation.leftRotation() != null){
             EntityDataSerializer<Quaternionfc> serializer = EntityDataSerializers.QUATERNION;
 
             SynchedEntityData.DataValue<Quaternionfc> item =
                     new SynchedEntityData.DataValue<>(
                             13,
                             serializer,
-                            transformation.getLeftRotation());
+                            transformation.leftRotation());
 
             data.add(item);
         }
-        if(transformation.getRightRotation() != null){
+if(transformation.rightRotation() != null){
             EntityDataSerializer<Quaternionfc> serializer = EntityDataSerializers.QUATERNION;
 
             SynchedEntityData.DataValue<Quaternionfc> item =
                     new SynchedEntityData.DataValue<>(
                             14,
                             serializer,
-                            transformation.getRightRotation());
+                            transformation.rightRotation());
 
             data.add(item);
         }

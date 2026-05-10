@@ -165,6 +165,7 @@ public class Triple {
         return new Triple(to.x() - from.x, to.y() - from.y, to.z() - from.z);
     }
 
+
     /**
      *
      * Makes a new Triple equal to the translation (distance on three axes / displacement) from a to b, or more formally the translation which 'from' needs to be translated to be at the exact position of 'to'.
@@ -223,6 +224,16 @@ public class Triple {
      */
     public Vector3f toVector3f() {
         return new Vector3f((float) x, (float) y, (float) z);
+    }
+
+    /**
+     *
+     * Returns a bukkit location with a null world and the coordinates of this Triple (no pitch and yaw).
+     *
+     * @return The location
+     */
+    public Location toLocation() {
+        return new Location(null, x, y, z);
     }
 
 

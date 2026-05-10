@@ -3,12 +3,13 @@ package org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroup
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import org.apache.commons.lang3.tuple.MutablePair;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.Vector;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
 import org.dopelegend.multiItemDisplayEngine.blockBench.FileReader;
@@ -26,7 +27,6 @@ import org.dopelegend.multiItemDisplayEngine.utils.classes.EntityHandler;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.joml.Vector3fc;
 
 import java.io.File;
 import java.util.*;
@@ -47,7 +47,7 @@ import java.util.*;
 
     private List<Player> renderingPlayers = new ArrayList<>();
     /**
-     * This is the pivotPoint and therefore the location of this ItemDisplayGroup (Visually hopefully that doesn't mess anything up :D).
+     * This is the pivotPoint and therefore the location of this ItemDisplayGroup.
      */
     private Location pivotPoint;
     private UUID uuid;
@@ -144,21 +144,30 @@ import java.util.*;
 
     /**
      * Queues all packets from all bones in this itemDisplayGroup in the PacketSender.
-     * Errors:
-     * Doesn't do rotation (when trying to add make sure it can handle different centers of rotation) this can be done my using matrix multiplication i think.
      */
     public void queueAllPackets(){
+        MutablePair<Boolean, Triple> outOfThreshold = new MutablePair<>(false, null);
+        Map<Bone, TeleportEntityPacketData> teleportPacketsToSend = new HashMap<>();
+        Map<Bone, ItemDisplayDataPacketData> interpolatedTransformationPacketsToSend = new HashMap<>();
+        Map<Bone, ItemDisplayDataPacketData> instantTransformationPacketsToSend = new HashMap<>();
+
+
         for (Bone bone : rootBone.getAllChildrenBones(true)){
-            List<PacketData> addedData = new ArrayList<>();
-            Triple relTranslation = new Triple(0, 0,0);
             Triple relTeleportation = new Triple(0, 0, 0);
             Triple offset = bone.getVisualOffset();
-            List<ItemDisplayDataPacketData> itemDisplayDataPacketData = new ArrayList<>();
+            List<ItemDisplayDataPacketData> interpolatedTransformationPackets = new ArrayList<>();
+            List<ItemDisplayDataPacketData> instantTransformationPackets = new ArrayList<>();
+
             // Sum all translations
             for (PacketData packetData : bone.getPackets()){
                 if (packetData instanceof ItemDisplayDataPacketData transformationPacketData) {
 //                    ItemDisplayDataPacketData currentData = transformationPacketData.clone();
-                    itemDisplayDataPacketData.add(transformationPacketData);
+
+                    if (transformationPacketData.getTransformationInterpolationDuration()<=0){
+                        instantTransformationPackets.add(transformationPacketData);
+                        continue;
+                    }
+                    interpolatedTransformationPackets.add(transformationPacketData);
 //                    if(transformationPacketData.getTransformationInterpolationDuration() > 1){
 //                        ItemDisplayDataPacketData additionalData = new ItemDisplayDataPacketData();
 //
@@ -182,11 +191,18 @@ import java.util.*;
                 }
             }
 
-            // Loop through itemDisplayPacketData and multiply matrices.
-            Matrix4f identityMatrix = new Matrix4f();
-            for (int i = itemDisplayDataPacketData.size()-1 ; i >= 0 ; i--){
-                identityMatrix.mul(itemDisplayDataPacketData.get(i).getRotMatrix());
+            // Loop through interpolatedTransformationPackets (all transformation packets that need to be interpolated by the client) and multiply matrices.
+            Matrix4f interpolatedTransformationMatrix = new Matrix4f();
+            for (int i = interpolatedTransformationPackets.size()-1 ; i >= 0 ; i--){
+                interpolatedTransformationMatrix.mul(interpolatedTransformationPackets.get(i).getRotMatrix());
             }
+
+            // Same as above but for the instant ones (rotation only, teleport packets are used for translation)
+            Matrix4f instantTransformationMatrix = new Matrix4f();
+            for (int i = instantTransformationPackets.size()-1 ; i >= 0 ; i--){
+                instantTransformationMatrix.mul(instantTransformationPackets.get(i).getRotMatrix());
+            }
+
 
             bone.clearPackets();
 
@@ -195,53 +211,167 @@ import java.util.*;
                 TeleportEntityPacketData teleportPacket = new TeleportEntityPacketData();
                 teleportPacket.setRelCoords(relTeleportation);
                 teleportPacket.setEntityID(bone.getEntityID());
-                PacketSender.queuePacket(teleportPacket, bone.getRenderingPlayers());
+                teleportPacketsToSend.put(bone, teleportPacket);
             }
 
 //            MultiItemDisplayEngine.plugin.getLogger().info("Offset: "+offset);
 //            MultiItemDisplayEngine.plugin.getLogger().info("relTranslation "+relTranslation);
-            Vector3f dest = new Vector3f();
-            identityMatrix.getTranslation(dest);
-            Triple offsetWithTranslation = offset.clone().add(new Triple(dest));
+
+            Vector3f interpolatedTranslation = new Vector3f();
+            interpolatedTransformationMatrix.getTranslation(interpolatedTranslation);
+
+            Vector3f instantTranslation = new Vector3f();
+            instantTransformationMatrix.getTranslation(instantTranslation);
+
+            Triple offsetWithTranslation = offset.clone().add(new Triple(interpolatedTranslation).add(new Triple(instantTranslation)));
 
 
-            // Reset position if it's outside teleportThreshold
-            if (offsetWithTranslation.clone().squaredSum() >= teleportThreshold){
-                TeleportEntityPacketData teleportResetPacket = new TeleportEntityPacketData();
-                teleportResetPacket.setRelCoords(offset.clone());
-                teleportResetPacket.setEntityID(bone.getEntityID());
-
-                ItemDisplayDataPacketData translationPacket = new ItemDisplayDataPacketData();
-                translationPacket.setTranslation(dest);
-                translationPacket.setEntityID(bone.getEntityID());
-                translationPacket.setInterpolationDelay(0);
-                translationPacket.setTransformationInterpolationDuration(0);
-
-                PacketSender.queuePacket(translationPacket, bone.getRenderingPlayers());
-                PacketSender.queuePacket(teleportResetPacket, bone.getRenderingPlayers());
-
-                bone.setVisualOffset(new Triple(0, 0, 0));
-
-                for(PacketData data : addedData){
-                    bone.addPacket(data);
-                }
-                continue;
+            // Make position reset if it's outside teleportThreshold
+            if (!outOfThreshold.getLeft() && offsetWithTranslation.clone().squaredSum() >= teleportThreshold){
+                outOfThreshold.setLeft(true);
+                outOfThreshold.setRight(offsetWithTranslation);
+//
+//                TeleportEntityPacketData teleportResetPacket = new TeleportEntityPacketData();
+//                teleportResetPacket.setRelCoords(offset.clone());
+//                teleportResetPacket.setEntityID(bone.getEntityID());
+//
+//                ItemDisplayDataPacketData translationPacket = new ItemDisplayDataPacketData();
+//                translationPacket.setTranslation(dest);
+//                translationPacket.setEntityID(bone.getEntityID());
+//                translationPacket.setInterpolationDelay(0);
+//                translationPacket.setTransformationInterpolationDuration(0);
+//
+//                PacketSender.queuePacket(translationPacket, bone.getRenderingPlayers());
+//                PacketSender.queuePacket(teleportResetPacket, bone.getRenderingPlayers());
+//
+//                bone.setVisualOffset(new Triple(0, 0, 0));
+//
+//                continue;
             }
 
-            // Send combined dataPacket
-            if (!identityMatrix.equals(new Matrix4f())){
+            // Make combined instant transformation packet, for instant rotation, pure instant translation is dealt with through teleportpackets.
+            if (!instantTransformationMatrix.equals(new Matrix4f())){
                 ItemDisplayDataPacketData bonePacket = new ItemDisplayDataPacketData();
-                bonePacket.setRotMatrix(identityMatrix.translate(bone.getVisualOffset().toVector3f()));
+//                instantTransformationMatrix.mul(bone.getTransformationMatrix());
+                bonePacket.setRotMatrix(instantTransformationMatrix);
+                bonePacket.setEntityID(bone.getEntityID());
+                bonePacket.setInterpolationDelay(0);
+                bonePacket.setTransformationInterpolationDuration(0);
+
+//                bone.setTransformationMatrix(instantTransformationMatrix);
+                instantTransformationPacketsToSend.put(bone, bonePacket);
+
+            }
+
+            // Make combined interpolated transformation packet
+            if (!interpolatedTransformationMatrix.equals(new Matrix4f())){
+                ItemDisplayDataPacketData bonePacket = new ItemDisplayDataPacketData();
+//                interpolatedTransformationMatrix.mul(bone.getTransformationMatrix());
+                bonePacket.setRotMatrix(interpolatedTransformationMatrix);
                 bonePacket.setEntityID(bone.getEntityID());
                 bonePacket.setInterpolationDelay(0);
                 bonePacket.setTransformationInterpolationDuration(1);
 
-                bone.setVisualOffset(offsetWithTranslation.clone());
-                PacketSender.queuePacket(bonePacket, bone.getRenderingPlayers());
-//                MultiItemDisplayEngine.plugin.getLogger().info("Send packet with: "+offsetWithTranslation);
+//                bone.setTransformationMatrix(interpolatedTransformationMatrix);
+                interpolatedTransformationPacketsToSend.put(bone, bonePacket);
+            }
+        }
 
-                for(PacketData data : addedData){
-                    bone.addPacket(data);
+        // Teleport ItemDisplayGroup if necessary.
+        if (outOfThreshold.getLeft()){
+            Triple offset = outOfThreshold.getRight();
+            setPivotPoint(getPivotPoint().add(offset.x, offset.y, offset.z));
+            // Teleport every bone
+            for (Bone bone : rootBone.getAllChildrenBones(true)){
+
+                // Teleport packet
+                TeleportEntityPacketData teleportPacket = teleportPacketsToSend.get(bone);
+                if (teleportPacket == null){
+                    teleportPacket = new TeleportEntityPacketData();
+                    teleportPacket.setEntityID(bone.getEntityID());
+                    teleportPacket.setRelCoords(new Triple(0, 0, 0));
+
+                }
+                teleportPacket.setRelCoords(teleportPacket.getRelCoords().add(offset));
+                PacketSender.queuePacket(teleportPacket, bone.getRenderingPlayers());
+
+                MultiItemDisplayEngine.plugin.getLogger().info("------------Teleport------------");
+                MultiItemDisplayEngine.plugin.getLogger().info(teleportPacket.getRelCoords().toString());
+                MultiItemDisplayEngine.plugin.getLogger().info("-------------------------------");
+
+                // Instant transformation packet
+
+                Matrix4f translationMatrix = new Matrix4f();
+                translationMatrix.translate(offset.clone().invert().toVector3f());
+
+                ItemDisplayDataPacketData transformationPacket = instantTransformationPacketsToSend.get(bone);
+                if (transformationPacket == null){
+                    transformationPacket = new ItemDisplayDataPacketData();
+                    transformationPacket.setRotMatrix(new Matrix4f());
+                    transformationPacket.setEntityID(bone.getEntityID());
+                    transformationPacket.setTransformationInterpolationDuration(0);
+                    transformationPacket.setInterpolationDelay(0);
+                }
+
+                PacketSender.queuePacket(transformationPacket, bone.getRenderingPlayers());
+
+                MultiItemDisplayEngine.plugin.getLogger().info("------------Instant------------");
+                MultiItemDisplayEngine.plugin.getLogger().info(transformationPacket.getTranslation().toString());
+                MultiItemDisplayEngine.plugin.getLogger().info(transformationPacket.getRotMatrix().toString());
+                MultiItemDisplayEngine.plugin.getLogger().info("-------------------------------");
+
+                // Interpolated transformation packet
+                ItemDisplayDataPacketData interpolatedTransformationPacket = interpolatedTransformationPacketsToSend.get(bone);
+                if (interpolatedTransformationPacket == null){
+                    interpolatedTransformationPacket = new ItemDisplayDataPacketData();
+                    interpolatedTransformationPacket.setRotMatrix(new Matrix4f());
+                    interpolatedTransformationPacket.setEntityID(bone.getEntityID());
+                    interpolatedTransformationPacket.setInterpolationDelay(0);
+                    interpolatedTransformationPacket.setTransformationInterpolationDuration(1);
+                }
+                Matrix4f interpolatedTranslation = new Matrix4f(interpolatedTransformationPacket.getRotMatrix());
+
+                interpolatedTransformationPacket.setRotMatrix(interpolatedTranslation.mul(transformationPacket.getRotMatrix()));
+                PacketSender.queuePacket(interpolatedTransformationPacket, bone.getRenderingPlayers());
+                MultiItemDisplayEngine.plugin.getLogger().info("------------Interpolated------------");
+                MultiItemDisplayEngine.plugin.getLogger().info(interpolatedTransformationPacket.getTranslation().toString());
+                MultiItemDisplayEngine.plugin.getLogger().info(interpolatedTransformationPacket.getRotMatrix().toString());
+                MultiItemDisplayEngine.plugin.getLogger().info("-------------------------------");
+                // Reset bone pos
+                bone.setVisualOffset(bone.getVisualOffset().remove(offset));
+                bone.setPosition(bone.getPosition().add(offset));
+
+                MultiItemDisplayEngine.plugin.getLogger().info("------------Visual offset------------");
+                MultiItemDisplayEngine.plugin.getLogger().info(bone.getVisualOffset().toString());
+                MultiItemDisplayEngine.plugin.getLogger().info("-------------------------------");
+                MultiItemDisplayEngine.plugin.getLogger().info("------------Position------------");
+                MultiItemDisplayEngine.plugin.getLogger().info(bone.getPosition().toString());
+                MultiItemDisplayEngine.plugin.getLogger().info("-------------------------------");
+
+                Bukkit.broadcastMessage("Reset");
+            }
+        }
+        // Send packets normally
+        else {
+            for (Bone bone : rootBone.getAllChildrenBones(true)){
+                ItemDisplayDataPacketData interpolatedPacket = interpolatedTransformationPacketsToSend.get(bone);
+                if (interpolatedPacket != null){
+                    interpolatedPacket.setRotMatrix(interpolatedPacket.getRotMatrix().mul(bone.getTransformationMatrix()));
+                    bone.setTransformationMatrix(new Matrix4f(interpolatedPacket.getRotMatrix()));
+                    PacketSender.queuePacket(interpolatedPacket, bone.getRenderingPlayers());
+                    MultiItemDisplayEngine.plugin.getLogger().info("------------Normal teleport------------");
+                    MultiItemDisplayEngine.plugin.getLogger().info(interpolatedPacket.getTranslation().toString());
+                    MultiItemDisplayEngine.plugin.getLogger().info("-------------------------------");
+                }
+                ItemDisplayDataPacketData instantPacket = instantTransformationPacketsToSend.get(bone);
+                if (instantPacket != null){
+                    instantPacket.setRotMatrix(instantPacket.getRotMatrix().mul(bone.getTransformationMatrix()));
+                    bone.setTransformationMatrix(new Matrix4f(instantPacket.getRotMatrix()));
+                    PacketSender.queuePacket(instantPacket, bone.getRenderingPlayers());
+                }
+                TeleportEntityPacketData teleportPacket = teleportPacketsToSend.get(bone);
+                if (teleportPacket != null){
+                    PacketSender.queuePacket(teleportPacket, bone.getRenderingPlayers());
                 }
             }
         }

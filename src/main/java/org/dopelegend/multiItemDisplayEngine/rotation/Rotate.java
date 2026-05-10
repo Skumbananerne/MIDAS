@@ -5,6 +5,7 @@ import org.bukkit.entity.ItemDisplay;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.ItemDisplayDataPacketData;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -13,15 +14,13 @@ public class Rotate {
 
     /**
      *
-     * Sets the rotation of an ItemDisplayGroup around all 3 axis using a 4x4 matrix.
+     * Sets the rotation of an ItemDisplayGroup around all 3 axes using a 4x4 matrix.
      *
      * @param itemDisplayGroup The itemDisplayGroup to rotate
      * @param rotation The rotation which is an euler angle using degrees (360)
      */
     public static void SetRotationItemDisplayGroup(ItemDisplayGroup itemDisplayGroup, Triple rotation) {
-        rotation.x = rotation.x % 360;
-        rotation.y = rotation.y % 360;
-        rotation.z = rotation.z % 360;
+        rotation.modulo(360);
 
         Location pivotPoint = itemDisplayGroup.getPivotPoint();
 
@@ -30,22 +29,22 @@ public class Rotate {
         // Loop through all bones
         for (Bone bone : rootBone.getAllChildrenBones(true)){
             if (!bone.hasElement()) continue;
-            ItemDisplay itemDisplay = bone.getItemDisplay();
+            ItemDisplayDataPacketData transformationPacket = new ItemDisplayDataPacketData();
+            transformationPacket.setEntityID(bone.getEntityID());
+            transformationPacket.setTransformationInterpolationDuration(0);
 
-            // Get offset to translate by.
-            Location itemDisplayLoc = itemDisplay.getLocation();
-            Triple offset = Triple.difference(itemDisplayLoc, pivotPoint);
-            Vector3f translation = offset.toVector3f();
-            Vector3f negTranslation = offset.invert().toVector3f();
+            Matrix4f transformationMatrix = new Matrix4f();
 
-            // Create Matrix and apply rotation.
-            Matrix4f currentMatrix = new Matrix4f();
-            currentMatrix.translate(translation);
-            currentMatrix.rotateXYZ(new Vector3f((float) Math.toRadians(rotation.x), (float) Math.toRadians(rotation.y), (float) Math.toRadians(rotation.z)));
-            currentMatrix.translate(negTranslation);
+            Triple relCenter = Triple.difference(bone.getPosition(), new Triple(pivotPoint));
 
-            // Apply matrix
-            itemDisplay.setTransformationMatrix(currentMatrix);
+            transformationMatrix.setTranslation(relCenter.toVector3f());
+            transformationMatrix.rotateXYZ(rotation.toRadians().toVector3f());
+            transformationMatrix.translate(relCenter.invert().toVector3f());
+
+            transformationPacket.setRotMatrix(transformationMatrix);
+            transformationMatrix.mul(transformationMatrix);
+
+            bone.addPacket(transformationPacket);
         }
     }
 
@@ -74,19 +73,21 @@ public class Rotate {
     public static void SetBoneRotationAround(Bone bone, Location pivotPoint, Triple rotation) {
         if (!bone.hasElement()) return;
 
-        rotation.x = rotation.x % 360;
-        rotation.y = rotation.y % 360;
-        rotation.z = rotation.z % 360;
+        ItemDisplayDataPacketData transformationPacket = new ItemDisplayDataPacketData();
+        transformationPacket.setEntityID(bone.getEntityID());
+        transformationPacket.setTransformationInterpolationDuration(0);
 
-        ItemDisplay itemDisplay = bone.getItemDisplay();
+        rotation.modulo(360);
 
         Matrix4f currentMatrix = new Matrix4f();
-        Location currentLocation = itemDisplay.getLocation();
-        Vector3f translation = new Vector3f((float) (pivotPoint.x()-currentLocation.x()), (float) (pivotPoint.y()-currentLocation.y()), (float) (pivotPoint.z()-currentLocation.z()));
-        currentMatrix.translate(translation);
-        currentMatrix.rotateXYZ(new Vector3f((float) Math.toRadians(rotation.x), (float) Math.toRadians(rotation.y), (float) Math.toRadians(rotation.z)));
-        currentMatrix.translate(new Vector3f(-translation.x(), -translation.y(), -translation.z()));
-        itemDisplay.setTransformationMatrix(currentMatrix);
+        Triple relCenter = Triple.difference(bone.getPosition(), new Triple(pivotPoint));
+        currentMatrix.translate(relCenter.toVector3f());
+        currentMatrix.rotateXYZ(rotation.toRadians().toVector3f());
+        currentMatrix.translate(relCenter.invert().toVector3f());
+
+        transformationPacket.setRotMatrix(currentMatrix);
+
+        bone.addPacket(transformationPacket);
     }
 
     /**

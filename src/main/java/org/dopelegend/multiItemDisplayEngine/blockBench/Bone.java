@@ -1,7 +1,5 @@
 package org.dopelegend.multiItemDisplayEngine.blockBench;
 
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.server.packs.repository.Pack;
 import org.bukkit.*;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
@@ -19,6 +17,8 @@ import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.SpawnItemDisp
 import org.dopelegend.multiItemDisplayEngine.rotation.Rotate;
 import org.dopelegend.multiItemDisplayEngine.utils.Timer;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
+import org.joml.Matrix3d;
+import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
@@ -67,6 +67,9 @@ public class Bone {
      * The visual offset of this bone from its real position (translation).
      */
     private Triple visualOffset = new Triple(0, 0, 0);
+
+    private Matrix4f transformationMatrix;
+
 
     boolean hasElement = false;
     List<Player> renderingPlayers = new ArrayList<>();
@@ -149,7 +152,7 @@ public class Bone {
                 originPosition.y + (relPivot.y / 16),
                 originPosition.z - (relPivot.z / 16)
         );
-        visualOffset = new Triple(0, 0, 0);
+        transformationMatrix = new Matrix4f();
     }
 
     public void render(Triple originPosition, Player player){
@@ -375,10 +378,25 @@ public class Bone {
     }
 
     public Triple getVisualOffset() {
-        return visualOffset;
+        Vector3f translation = new Vector3f();
+        return new Triple(transformationMatrix.getTranslation(translation));
     }
 
     public void setVisualOffset(Triple visualOffset) {
-        this.visualOffset = visualOffset;
+        transformationMatrix.setTranslation(visualOffset.toVector3f());
+    }
+
+    public Matrix4f getTransformationMatrix() {
+        return transformationMatrix;
+    }
+
+    /**
+     *
+     * Used for visual offset and rotation.
+     *
+     * @param transformationMatrix This bone's transformation matrix.
+     */
+    public void setTransformationMatrix(Matrix4f transformationMatrix) {
+        this.transformationMatrix = transformationMatrix;
     }
 }
