@@ -95,7 +95,7 @@ public class Bone {
 
     /**
      *
-     * When this constructor is used we assume the bone have an element.
+     * When this constructor is used we assume the bone has an element.
      *
      * @param relPivot The origin represented by 3 doubles in the form of a triple.
      * @param parentBone Parent of this bone
@@ -112,7 +112,8 @@ public class Bone {
         this.baseRotation = baseRotation;
         this.currentRotation = baseRotation;
         this.displayedItem = createDisplayedItem();
-        this.entityID = Bukkit.getUnsafe().nextEntityId();
+        // TODO this uses the overworld which is not always correct.
+        this.entityID = Bukkit.getUnsafe().nextEntityId(Bukkit.getWorlds().getFirst());
     }
 
     /**
@@ -145,7 +146,8 @@ public class Bone {
         for (Bone bone : childrenBones) {
             bone.syncPositionToDisplayGroup(originPosition);
         }
-        if (!this.hasElement) {return;}
+        // TODO I commented this out to fix an error, I'm not entirely sure if it's important.
+        //if (!this.hasElement) {return;}
 
         position = new Triple(
                 originPosition.x - (relPivot.x / 16),

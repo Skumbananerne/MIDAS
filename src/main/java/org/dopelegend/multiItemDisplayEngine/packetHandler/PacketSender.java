@@ -9,12 +9,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
-import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.PacketData;
+import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.*;
 
 import java.util.*;
 
 public class PacketSender {
     static Map<UUID, List<Packet<?>>> packetQueue = new HashMap<>();
+    static int printNext = 0;
 
     private static void sendPacket(Player player, Packet<?> packet) {
         CraftPlayer craftPlayer = (CraftPlayer) player;
@@ -38,6 +39,39 @@ public class PacketSender {
 
     public static void queuePacket(PacketData packetData, List<Player> players){
         Packet<?> packet = packetData.createPacket();
+//        boolean thisTime = false;
+//        if (packetData instanceof ItemDisplayDataPacketData displayData) {
+//                Bukkit.broadcastMessage("Transformation matrix:");
+//               Bukkit.broadcastMessage(displayData.getRotMatrix().toString());
+//                if (displayData.getDisplayedItem() != null) {
+//                    Bukkit.broadcastMessage("Displayed item: " + displayData.getDisplayedItem().toString());
+//                }
+//                else {
+//                    Bukkit.broadcastMessage("Displayed item: null");
+//                }
+//
+//                Bukkit.broadcastMessage("Displayed type: " + displayData.getDisplayedType().toString());
+//                Bukkit.broadcastMessage("View Range: " + String.valueOf(displayData.getViewRange()));
+//                Bukkit.broadcastMessage("Teleport duration: " + String.valueOf(displayData.getTeleportInterpolationDuration()));
+//                Bukkit.broadcastMessage("Transformation duration: " + String.valueOf(displayData.getTransformationInterpolationDuration()));
+//                Bukkit.broadcastMessage("Interpolation delay: " + String.valueOf(displayData.getInterpolationDelay()));
+//
+//
+//            printNext = 5;
+//                thisTime = true;
+//        }
+//        if (packetData instanceof TeleportEntityPacketData teleportData) {
+//            Bukkit.broadcastMessage("Teleport: "+teleportData.getRelCoords().toString());
+//        }
+//        if (packetData instanceof SpawnItemDisplayPacketData spawnData) {
+//            Bukkit.broadcastMessage("Spawned itemDisplay at: "+spawnData.getPosition().toString());
+//            Bukkit.broadcastMessage("And EID: "+spawnData.getEntityID());
+//        }
+//        if (packetData instanceof RemoveEntitiesPacketData removeData) {
+//            Bukkit.broadcastMessage("Removed itemDisplay(s) with EID: "+removeData.getEntityIds().toString());
+//        }
+//        Bukkit.broadcastMessage(players.toString());
+
         for(Player player : players) {
             if (!packetQueue.containsKey(player.getUniqueId())){
                 packetQueue.put(player.getUniqueId(), new ArrayList<>());

@@ -25,16 +25,6 @@ public class EntityHandler {
     }
 
     /**
-     *
-     * Gets the next entityID, this should be used any time you want to create a new packet.
-     *
-     * @return The entityID
-     */
-    public int getID() {
-        return Bukkit.getUnsafe().nextEntityId();
-    }
-
-    /**
      * Removes a EntityHandler.
      *
      * @param uuid The uuid of the player this entityHandler is linked to.

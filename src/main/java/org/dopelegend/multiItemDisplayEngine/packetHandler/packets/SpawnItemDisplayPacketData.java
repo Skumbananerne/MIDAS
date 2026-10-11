@@ -2,6 +2,7 @@ package org.dopelegend.multiItemDisplayEngine.packetHandler.packets;
 
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.phys.Vec3;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
@@ -44,7 +45,7 @@ public class SpawnItemDisplayPacketData implements PacketData {
                 position.z,
                 0,
                 0,
-                net.minecraft.world.entity.EntityType.ITEM_DISPLAY,
+                EntityTypes.ITEM_DISPLAY,
                 0,
                 Vec3.ZERO,
                 0

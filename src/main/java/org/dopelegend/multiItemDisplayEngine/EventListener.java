@@ -7,6 +7,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerResourcePackStatusEvent;
 
 public class EventListener implements Listener {
+
     @EventHandler
     public void OnPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();

@@ -230,7 +230,7 @@ public class ModelCommand {
             return 0;
         }
 
-        currentTestId = Bukkit.getUnsafe().nextEntityId();
+        currentTestId = Bukkit.getUnsafe().nextEntityId(player.getWorld());
         SpawnItemDisplayPacketData spawnItemDisplayPacketData = new SpawnItemDisplayPacketData();
         spawnItemDisplayPacketData.setEntityID(currentTestId);
         spawnItemDisplayPacketData.setPosition(new Triple(player.getLocation()));
