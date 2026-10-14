@@ -264,7 +264,7 @@ import java.util.*;
         if (outOfThreshold.getLeft()){
             Triple offset = outOfThreshold.getRight();
             // TODO Figure out if the pivotPoint is used as the actual location or the visual location.
-            //  Since it's updated in the teleportSmooth function (using a visual offset) this needs to be commented out.
+            //  Since it's updated in the teleportSmooth function (used as a visual offset) the line below seemingly needs to be commented out.
             //setPivotPoint(getPivotPoint().add(offset.x, offset.y, offset.z));
             // Teleport every bone
             for (Bone bone : rootBone.getAllChildrenBones(true)){
@@ -291,27 +291,28 @@ import java.util.*;
                     transformationPacket.setInterpolationDelay(0);
                 }
 
+                transformationPacket.setRotMatrix(transformationPacket.getRotMatrix().mul(translationMatrix));
                 PacketSender.queuePacket(transformationPacket, bone.getRenderingPlayers());
 
 
                 // Interpolated transformation packet
-                ItemDisplayDataPacketData interpolatedTransformationPacket = interpolatedTransformationPacketsToSend.get(bone);
+                //ItemDisplayDataPacketData interpolatedTransformationPacket = interpolatedTransformationPacketsToSend.get(bone);
+                ItemDisplayDataPacketData interpolatedTransformationPacket = null;
                 if (interpolatedTransformationPacket == null){
                     interpolatedTransformationPacket = new ItemDisplayDataPacketData();
                     interpolatedTransformationPacket.setRotMatrix(new Matrix4f());
                     interpolatedTransformationPacket.setEntityID(bone.getEntityID());
                     interpolatedTransformationPacket.setInterpolationDelay(0);
-                    interpolatedTransformationPacket.setTransformationInterpolationDuration(1);
+                    interpolatedTransformationPacket.setTransformationInterpolationDuration(10);
                 }
                 Matrix4f interpolatedTranslation = new Matrix4f(interpolatedTransformationPacket.getRotMatrix());
 
-                interpolatedTransformationPacket.setRotMatrix(interpolatedTranslation.mul(transformationPacket.getRotMatrix()));
-                PacketSender.queuePacket(interpolatedTransformationPacket, bone.getRenderingPlayers());
+                //interpolatedTransformationPacket.setRotMatrix(interpolatedTranslation.mul(transformationPacket.getRotMatrix()));
+                //PacketSender.queuePacket(interpolatedTransformationPacket, bone.getRenderingPlayers());
 
                 // Reset bone pos
                 bone.setVisualOffset(bone.getVisualOffset().remove(offset));
                 bone.setPosition(bone.getPosition().add(offset));
-
             }
         }
 

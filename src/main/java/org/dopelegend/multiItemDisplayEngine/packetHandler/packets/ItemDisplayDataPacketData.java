@@ -5,6 +5,7 @@ import net.minecraft.network.syncher.EntityDataSerializer;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.item.ItemStack;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +27,7 @@ public class ItemDisplayDataPacketData extends DisplayDataPacket implements Pack
     }
 
     public void setDisplayedItem(org.bukkit.inventory.ItemStack displayedItem) {
-        this.displayedItem = ItemStack.fromBukkitCopy(displayedItem);
+       this.displayedItem = CraftItemStack.asNMSCopy(displayedItem);
     }
     public void setDisplayedItem(ItemStack displayedItem) {
         this.displayedItem = displayedItem;
