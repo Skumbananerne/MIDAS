@@ -13,10 +13,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
-import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
+import org.dopelegend.multiItemDisplayEngine.bone.Bone;
 import org.dopelegend.multiItemDisplayEngine.blockBench.generator.TexturePack;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
-import org.dopelegend.multiItemDisplayEngine.movement.TeleportSmooth;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.PacketSender;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.ItemDisplayDataPacketData;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.SpawnItemDisplayPacketData;
@@ -40,7 +39,6 @@ public class ModelCommand {
         }
         timer.printCurrentTime("before init", false);
 
-
         ItemDisplayGroup itemDisplayGroup = new ItemDisplayGroup(new Location(player.getWorld(), 0.5, 1.5 ,0.5), ctx.getArgument("model name", String.class));
 
         timer.printCurrentTime("before spawn", false);
@@ -53,7 +51,7 @@ public class ModelCommand {
         Triple rotation = new Triple(0, 10, 0);
         Triple translation = new Triple(0.3, 0,0);
 
-//        itemDisplayGroup.playAnimation("animation");
+//        itemDisplayGroup.getAnimationHandler().playAnimation("animation");
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -148,7 +146,7 @@ public class ModelCommand {
 
                 player.sendRichMessage("<yellow>View Range Squared: <aqua>" + group.getViewRangeSquared());
 
-                player.sendRichMessage("<yellow>Animation State: <green>" + group.getAnimationState());
+                player.sendRichMessage("<yellow>Animation State: <green>" + group.getAnimationHandler().getAnimationState());
 
                 player.sendRichMessage("<yellow>Pivot Point: <light_purple>" + group.getPivotPoint());
 

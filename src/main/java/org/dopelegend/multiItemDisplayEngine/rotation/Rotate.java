@@ -2,8 +2,7 @@ package org.dopelegend.multiItemDisplayEngine.rotation;
 
 import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
-import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
-import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
+import org.dopelegend.multiItemDisplayEngine.bone.Bone;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.ItemDisplayDataPacketData;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;

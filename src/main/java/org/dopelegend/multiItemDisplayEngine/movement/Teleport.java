@@ -1,7 +1,7 @@
 package org.dopelegend.multiItemDisplayEngine.movement;
 
 import org.bukkit.Location;
-import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
+import org.dopelegend.multiItemDisplayEngine.bone.Bone;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.TeleportEntityPacketData;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;

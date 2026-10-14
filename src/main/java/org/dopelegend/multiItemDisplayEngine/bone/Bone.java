@@ -1,4 +1,4 @@
-package org.dopelegend.multiItemDisplayEngine.blockBench;
+package org.dopelegend.multiItemDisplayEngine.bone;
 
 import org.bukkit.*;
 import org.bukkit.entity.EntityType;
@@ -17,12 +17,12 @@ import org.dopelegend.multiItemDisplayEngine.packetHandler.packets.SpawnItemDisp
 import org.dopelegend.multiItemDisplayEngine.rotation.Rotate;
 import org.dopelegend.multiItemDisplayEngine.utils.Timer;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
-import org.joml.Matrix3d;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 
 /**
@@ -52,7 +52,7 @@ public class Bone {
      */
     private int entityID;
     private ItemDisplay itemDisplay;
-    private String UUID;
+    private UUID UUID;
     private List<Bone> childrenBones;
     private Bone parentBone;
     private String modelName;
@@ -83,7 +83,7 @@ public class Bone {
      * @param childrenBones All children direct child bones from this bone
      * @param UUID UUID of this bone
      */
-    public Bone(Triple relPivot, Triple baseRotation, Bone parentBone, List<Bone> childrenBones, String UUID) {
+    public Bone(Triple relPivot, Triple baseRotation, Bone parentBone, List<Bone> childrenBones, UUID UUID) {
         this.relPivot = relPivot;
         this.UUID = UUID;
         this.childrenBones = childrenBones;
@@ -102,7 +102,7 @@ public class Bone {
      * @param childrenBones All children direct child bones from this bone
      * @param UUID UUID of this bone
      */
-    public Bone(Triple relPivot, Triple baseRotation, Bone parentBone, List<Bone> childrenBones, String UUID, String modelName) {
+    public Bone(Triple relPivot, Triple baseRotation, Bone parentBone, List<Bone> childrenBones, UUID UUID, String modelName) {
         this.relPivot = relPivot;
         this.UUID = UUID;
         this.childrenBones = childrenBones;
@@ -302,11 +302,11 @@ public class Bone {
         this.relPivot = relOrigin;
     }
 
-    public String getUUID() {
+    public UUID getUUID() {
         return UUID;
     }
 
-    public void setUUID(String UUID) {
+    public void setUUID(UUID UUID) {
         this.UUID = UUID;
     }
 

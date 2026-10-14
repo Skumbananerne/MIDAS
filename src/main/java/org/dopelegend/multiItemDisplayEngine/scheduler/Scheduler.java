@@ -51,7 +51,9 @@ public class Scheduler {
     private void loadTasks(){
         addTask(1, 100, PacketSender::flushPackets);
         addTask(1, 5, () -> {
-            ItemDisplayGroup.getAllItemDisplayGroups().forEach(ItemDisplayGroup::queueAllPackets);
+            for (ItemDisplayGroup group : ItemDisplayGroup.getAllItemDisplayGroups()) {
+                group.getPacketHandler().queueAllPackets();
+            }
         });
     }
 }

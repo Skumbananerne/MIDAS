@@ -76,7 +76,11 @@ public class PacketSender {
             if (!packetQueue.containsKey(player.getUniqueId())){
                 packetQueue.put(player.getUniqueId(), new ArrayList<>());
             }
-            packetQueue.get(player.getUniqueId()).add(packet);
+            if (packetData instanceof ItemDisplayDataPacketData displayPacket && displayPacket.getTransformationInterpolationDuration() <= 0){
+                packetQueue.get(player.getUniqueId()).add(packet);
+                continue;
+            }
+            packetQueue.get(player.getUniqueId()).addFirst(packet);
         }
     }
 
@@ -86,7 +90,6 @@ public class PacketSender {
             ClientboundBundlePacket bundle = new ClientboundBundlePacket(
                     (Iterable) entry.getValue()
             );
-
             packets.put(entry.getKey(), bundle);
         }
 

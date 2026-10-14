@@ -4,7 +4,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
-import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
+import org.dopelegend.multiItemDisplayEngine.bone.Bone;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 import org.joml.Matrix4f;

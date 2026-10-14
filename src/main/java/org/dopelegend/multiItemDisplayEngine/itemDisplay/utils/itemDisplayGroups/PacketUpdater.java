@@ -2,6 +2,7 @@ package org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroup
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.EntityHandler;
@@ -40,7 +41,6 @@ public class PacketUpdater {
             if (playerlocation.getWorld() != itemDisplayGroup.getPivotPoint().getWorld()) continue;
 
             boolean isRendered = entityHandler.getActiveItemDisplayGroups().contains(itemDisplayGroup.getUuid());
-
 
             if (playerlocation.distanceSquared(itemDisplayGroup.getPivotPoint()) < itemDisplayGroup.getViewRangeSquared()) {
                 if (!isRendered) {

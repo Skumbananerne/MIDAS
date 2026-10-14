@@ -3,13 +3,13 @@ package org.dopelegend.multiItemDisplayEngine.blockBench;
 import com.google.gson.*;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.blockBench.generator.TexturePack;
+import org.dopelegend.multiItemDisplayEngine.bone.Bone;
 import org.dopelegend.multiItemDisplayEngine.files.utils.FileGetter;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.UUID;
 
 public class FileReader {
 
@@ -135,7 +135,7 @@ public class FileReader {
                     rotation,
                     parent,
                     new ArrayList<>(),
-                    boneUUID
+                    UUID.fromString(boneUUID)
             );
         }
         else {
@@ -145,7 +145,7 @@ public class FileReader {
                     rotation,
                     parent,
                     new ArrayList<>(),
-                    boneUUID,
+                    UUID.fromString(boneUUID),
                     modelData.get("name").getAsString()
             );
         }

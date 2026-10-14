@@ -3,15 +3,12 @@ package org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroup
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
 import org.apache.commons.lang3.tuple.MutablePair;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
-import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
+import org.dopelegend.multiItemDisplayEngine.bone.Bone;
 import org.dopelegend.multiItemDisplayEngine.blockBench.FileReader;
 import org.dopelegend.multiItemDisplayEngine.blockBench.generator.Animation;
 import org.dopelegend.multiItemDisplayEngine.blockBench.generator.KeyFrame;
@@ -34,34 +31,32 @@ import java.util.*;
 /**
  * A group of ItemDisplays that are connected, that way you can move and rotate them around a center without their relative position to each other breaking.
  */
-    public class ItemDisplayGroup {
+public class ItemDisplayGroup {
+    private IDGPacketHandler packetHandler;
+    private IDGAnimationHandler animationHandler;
 
     static List<ItemDisplayGroup> allItemDisplayGroups = new ArrayList<>();
 
-    public enum AnimationState{RUNNING, HOLDING, PAUSED, FREE}
 
     //Class variables
     // TODO make these config based
     private int viewRangeSquared = 100*100;
-    private final double teleportThreshold = viewRangeSquared/(3.0*3.0);
 
     private List<Player> renderingPlayers = new ArrayList<>();
+    private JsonObject rootJson;
+
     /**
      * This is the pivotPoint and therefore the location of this ItemDisplayGroup.
      */
     private Location pivotPoint;
     private UUID uuid;
     private Bone rootBone;
-    private double yaw;
-    private double pitch;
-    private double roll;
+    private double yaw = 0;
+    private double pitch = 0;
+    private double roll = 0;
     private boolean destroyed;
-    private AnimationState animationState;
 
-    /**
-     * All the animations this ItemDisplayGroup has as a map where the key is a string name of the animation and the value is an Animation class.
-     */
-    private Map<String, Animation>  animations;
+    private String modelName;
 
     //Constructor
     /**
@@ -73,6 +68,8 @@ import java.util.*;
      *
      */
     public ItemDisplayGroup(Location pivotPoint, Bone rootBone) {
+        ensureHandlers();
+
         allItemDisplayGroups.add(this);
 
         if (pivotPoint == null || rootBone == null) {
@@ -80,10 +77,6 @@ import java.util.*;
         }
         this.pivotPoint = pivotPoint;
         this.rootBone = rootBone;
-        this.yaw = 0;
-        this.pitch = 0;
-        this.roll = 0;
-        this.animations = new HashMap<String, Animation>();
         this.uuid = UUID.randomUUID();
     }
 
@@ -94,6 +87,8 @@ import java.util.*;
      *
      */
     public ItemDisplayGroup(Location pivotPoint, String modelName) {
+        ensureHandlers();
+
         allItemDisplayGroups.add(this);
 
         // TODO make a map with predefined ItemDisplayGroupBlueprints and check against that before recomputing everything.
@@ -108,235 +103,20 @@ import java.util.*;
         }
         Bone rootBone = FileReader.getRootBone(file);
         if (rootBone == null) {
-            this.rootBone = new Bone(new Triple(0, 0,0), new Triple(0, 0,0), null, new ArrayList<>(), UUID.randomUUID().toString());
+            this.rootBone = new Bone(new Triple(0, 0,0), new Triple(0, 0,0), null, new ArrayList<>(), UUID.randomUUID());
             MultiItemDisplayEngine.plugin.getLogger().severe("Failed to make rootBone (used empty RootBone instead) for ItemDisplayGroup using model: " + modelName);
             return;
         }
 
         this.rootBone = rootBone;
-        this.yaw = 0;
-        this.pitch = 0;
-        this.roll = 0;
         this.uuid = UUID.randomUUID();
-
-        JsonObject rootJson = FileReader.getRootJsonObject(file);
-        if (rootJson == null) {
-            this.animations = new HashMap<>();
-            MultiItemDisplayEngine.plugin.getLogger().severe("Failed to make animations (used empty animation list instead) for ItemDisplayGroup using model: " + modelName);
-            return;
-        }
-
-        Map<String, Animation> animations = new HashMap<>();
-
-        JsonArray animationsArray =  rootJson.getAsJsonArray("animations");
-        if (animationsArray == null){
-            this.animations = new HashMap<>();
-            return;
-        }
-        for (JsonElement element : animationsArray) {
-            if (element instanceof JsonObject animation) {
-                animations.put(animation.get("name").getAsString(), new Animation(animation, rootBone));
-            }
-        }
-
-        this.animations = animations;
+        this.rootJson = FileReader.getRootJsonObject(file);
+        this.modelName = modelName;
     }
 
-    /**
-     * Queues all packets from all bones in this itemDisplayGroup in the PacketSender.
-     */
-    public void queueAllPackets(){
-        MutablePair<Boolean, Triple> outOfThreshold = new MutablePair<>(false, null);
-        Map<Bone, TeleportEntityPacketData> teleportPacketsToSend = new HashMap<>();
-        Map<Bone, ItemDisplayDataPacketData> interpolatedTransformationPacketsToSend = new HashMap<>();
-        Map<Bone, ItemDisplayDataPacketData> instantTransformationPacketsToSend = new HashMap<>();
-
-
-        for (Bone bone : rootBone.getAllChildrenBones(true)){
-            Triple relTeleportation = new Triple(0, 0, 0);
-            Triple offset = bone.getVisualOffset();
-            List<ItemDisplayDataPacketData> interpolatedTransformationPackets = new ArrayList<>();
-            List<ItemDisplayDataPacketData> instantTransformationPackets = new ArrayList<>();
-
-            // Sum all translations
-            for (PacketData packetData : bone.getPackets()){
-                if (packetData instanceof ItemDisplayDataPacketData transformationPacketData) {
-//                    ItemDisplayDataPacketData currentData = transformationPacketData.clone();
-
-                    if (transformationPacketData.getTransformationInterpolationDuration()<=0){
-                        instantTransformationPackets.add(transformationPacketData);
-                        continue;
-                    }
-                    interpolatedTransformationPackets.add(transformationPacketData);
-//                    if(transformationPacketData.getTransformationInterpolationDuration() > 1){
-//                        ItemDisplayDataPacketData additionalData = new ItemDisplayDataPacketData();
-//
-//                        Vector3f currentVector = new Vector3f();
-//                        currentData.setTranslation(transformationPacketData.getTranslation().div(
-//                                transformationPacketData.getTransformationInterpolationDuration(),
-//                                currentVector
-//                        ));
-//                        currentData.setTransformationInterpolationDuration(1);
-//
-//                        Vector3f additionalVector = new Vector3f();
-//                        additionalData.setTranslation(transformationPacketData.getTranslation().sub(currentData.getTranslation(), additionalVector));
-//                        additionalData.setTransformationInterpolationDuration(transformationPacketData.getTransformationInterpolationDuration() - 1);
-//
-//                        addedData.add(additionalData);
-//                    }
-//                    relTranslation.add(new Triple(currentData.getTranslation()));
-                }
-                else if (packetData instanceof TeleportEntityPacketData teleportEntityPacketData) {
-                    relTeleportation.add(teleportEntityPacketData.getRelCoords());
-                }
-            }
-
-            // Loop through interpolatedTransformationPackets (all transformation packets that need to be interpolated by the client) and multiply matrices.
-            Matrix4f interpolatedTransformationMatrix = new Matrix4f();
-            for (int i = interpolatedTransformationPackets.size()-1 ; i >= 0 ; i--){
-                interpolatedTransformationMatrix.mul(interpolatedTransformationPackets.get(i).getRotMatrix());
-            }
-
-            // Same as above but for the instant ones (rotation only, teleport packets are used for translation)
-            Matrix4f instantTransformationMatrix = new Matrix4f();
-            for (int i = instantTransformationPackets.size()-1 ; i >= 0 ; i--){
-                instantTransformationMatrix.mul(instantTransformationPackets.get(i).getRotMatrix());
-            }
-
-
-            bone.clearPackets();
-
-            // Send teleport packet
-            if (!relTeleportation.isEmpty()){
-                TeleportEntityPacketData teleportPacket = new TeleportEntityPacketData();
-                teleportPacket.setRelCoords(relTeleportation);
-                teleportPacket.setEntityID(bone.getEntityID());
-                teleportPacketsToSend.put(bone, teleportPacket);
-            }
-
-//            MultiItemDisplayEngine.plugin.getLogger().info("Offset: "+offset);
-//            MultiItemDisplayEngine.plugin.getLogger().info("relTranslation "+relTranslation);
-
-            Vector3f interpolatedTranslation = new Vector3f();
-            interpolatedTransformationMatrix.getTranslation(interpolatedTranslation);
-
-            Vector3f instantTranslation = new Vector3f();
-            instantTransformationMatrix.getTranslation(instantTranslation);
-
-            Triple offsetWithTranslation = offset.clone().add(new Triple(interpolatedTranslation).add(new Triple(instantTranslation)));
-
-
-            // Make position reset if it's outside teleportThreshold
-            if (!outOfThreshold.getLeft() && offsetWithTranslation.clone().squaredSum() >= teleportThreshold){
-                outOfThreshold.setLeft(true);
-                outOfThreshold.setRight(offsetWithTranslation);
-            }
-
-            // Make combined instant transformation packet, for instant rotation, pure instant translation is dealt with through teleportpackets.
-            if (!instantTransformationMatrix.equals(new Matrix4f())){
-                ItemDisplayDataPacketData bonePacket = new ItemDisplayDataPacketData();
-//                instantTransformationMatrix.mul(bone.getTransformationMatrix());
-                bonePacket.setRotMatrix(instantTransformationMatrix);
-                bonePacket.setEntityID(bone.getEntityID());
-                bonePacket.setInterpolationDelay(0);
-                bonePacket.setTransformationInterpolationDuration(0);
-
-//                bone.setTransformationMatrix(instantTransformationMatrix);
-                instantTransformationPacketsToSend.put(bone, bonePacket);
-
-            }
-
-            // Make combined interpolated transformation packet
-            if (!interpolatedTransformationMatrix.equals(new Matrix4f())){
-                ItemDisplayDataPacketData bonePacket = new ItemDisplayDataPacketData();
-                bonePacket.setRotMatrix(interpolatedTransformationMatrix);
-                bonePacket.setEntityID(bone.getEntityID());
-                bonePacket.setInterpolationDelay(0);
-                bonePacket.setTransformationInterpolationDuration(1);
-
-                interpolatedTransformationPacketsToSend.put(bone, bonePacket);
-            }
-        }
-
-        // This is outside the for loop btw.
-
-        // Teleport ItemDisplayGroup if necessary.
-        if (outOfThreshold.getLeft()){
-            Triple offset = outOfThreshold.getRight();
-            // TODO Figure out if the pivotPoint is used as the actual location or the visual location.
-            //  Since it's updated in the teleportSmooth function (used as a visual offset) the line below seemingly needs to be commented out.
-            //setPivotPoint(getPivotPoint().add(offset.x, offset.y, offset.z));
-            // Teleport every bone
-            for (Bone bone : rootBone.getAllChildrenBones(true)){
-
-                // Teleport packet
-                TeleportEntityPacketData teleportPacket = teleportPacketsToSend.get(bone);
-                if (teleportPacket == null){
-                    teleportPacket = new TeleportEntityPacketData();
-                    teleportPacket.setEntityID(bone.getEntityID());
-                    teleportPacket.setRelCoords(new Triple(0, 0, 0));
-                }
-                teleportPacket.setRelCoords(teleportPacket.getRelCoords().add(offset));
-                PacketSender.queuePacket(teleportPacket, bone.getRenderingPlayers());
-
-                Matrix4f translationMatrix = new Matrix4f();
-                translationMatrix.translate(offset.clone().invert().toVector3f());
-
-                ItemDisplayDataPacketData transformationPacket = instantTransformationPacketsToSend.get(bone);
-                if (transformationPacket == null){
-                    transformationPacket = new ItemDisplayDataPacketData();
-                    transformationPacket.setRotMatrix(new Matrix4f());
-                    transformationPacket.setEntityID(bone.getEntityID());
-                    transformationPacket.setTransformationInterpolationDuration(0);
-                    transformationPacket.setInterpolationDelay(0);
-                }
-
-                transformationPacket.setRotMatrix(transformationPacket.getRotMatrix().mul(translationMatrix));
-                PacketSender.queuePacket(transformationPacket, bone.getRenderingPlayers());
-
-
-                // Interpolated transformation packet
-                //ItemDisplayDataPacketData interpolatedTransformationPacket = interpolatedTransformationPacketsToSend.get(bone);
-                ItemDisplayDataPacketData interpolatedTransformationPacket = null;
-                if (interpolatedTransformationPacket == null){
-                    interpolatedTransformationPacket = new ItemDisplayDataPacketData();
-                    interpolatedTransformationPacket.setRotMatrix(new Matrix4f());
-                    interpolatedTransformationPacket.setEntityID(bone.getEntityID());
-                    interpolatedTransformationPacket.setInterpolationDelay(0);
-                    interpolatedTransformationPacket.setTransformationInterpolationDuration(10);
-                }
-                Matrix4f interpolatedTranslation = new Matrix4f(interpolatedTransformationPacket.getRotMatrix());
-
-                //interpolatedTransformationPacket.setRotMatrix(interpolatedTranslation.mul(transformationPacket.getRotMatrix()));
-                //PacketSender.queuePacket(interpolatedTransformationPacket, bone.getRenderingPlayers());
-
-                // Reset bone pos
-                bone.setVisualOffset(bone.getVisualOffset().remove(offset));
-                bone.setPosition(bone.getPosition().add(offset));
-            }
-        }
-
-        // Send packets normally
-        else {
-            for (Bone bone : rootBone.getAllChildrenBones(true)){
-                ItemDisplayDataPacketData interpolatedPacket = interpolatedTransformationPacketsToSend.get(bone);
-                if (interpolatedPacket != null){
-                    interpolatedPacket.setRotMatrix(interpolatedPacket.getRotMatrix().mul(bone.getTransformationMatrix()));
-                    bone.setTransformationMatrix(new Matrix4f(interpolatedPacket.getRotMatrix()));
-                    PacketSender.queuePacket(interpolatedPacket, bone.getRenderingPlayers());
-                }
-                ItemDisplayDataPacketData instantPacket = instantTransformationPacketsToSend.get(bone);
-                if (instantPacket != null){
-                    instantPacket.setRotMatrix(instantPacket.getRotMatrix().mul(bone.getTransformationMatrix()));
-                    bone.setTransformationMatrix(new Matrix4f(instantPacket.getRotMatrix()));
-                    PacketSender.queuePacket(instantPacket, bone.getRenderingPlayers());
-                }
-                TeleportEntityPacketData teleportPacket = teleportPacketsToSend.get(bone);
-                if (teleportPacket != null){
-                    PacketSender.queuePacket(teleportPacket, bone.getRenderingPlayers());
-                }
-            }
-        }
+    private void ensureHandlers(){
+        this.packetHandler = new IDGPacketHandler(this);
+        this.animationHandler = new IDGAnimationHandler(this);
     }
 
     /**
@@ -369,108 +149,12 @@ import java.util.*;
 
     /**
      *
-     * Makes this itemDisplayGroup play an animation with the given name.
-     *
-     * @param animationName The name of the animation, this is the same as it's called in BlockBench.
-     * @return False if the animation couldn't be found, or there's already an animation running, otherwise true.
-     */
-    public boolean playAnimation(String animationName){
-        if (!this.animations.containsKey(animationName)) return false;
-        if (animationState == AnimationState.RUNNING) return false;
-
-        if(animationState == AnimationState.PAUSED || animationState == AnimationState.HOLDING){
-            resetBonesPosAndRot();
-        }
-
-        animationState = AnimationState.RUNNING;
-
-        Animation animation = this.animations.get(animationName);
-        Map<Bone, List<KeyFrame>> keyframeSet = animation.getKeyFrames();
-
-        Animation.LoopMode mode = animation.getLoopMode();
-        Bone[] boneArray = keyframeSet.keySet().toArray(new Bone[0]);
-
-        for (int i = 0; i < boneArray.length; i++) {
-            List<KeyFrame> keyFrames = keyframeSet.get(boneArray[i]);
-
-            for (int j = 0; j < keyFrames.size(); j++) {
-                KeyFrame keyFrame = keyFrames.get(j);
-                int finalJ = j;
-                int finalI = i;
-                new BukkitRunnable(){
-                    @Override
-                    public void run() {
-                        KeyFrame validKeyframe = null;
-                        switch (keyFrame.getType()) {
-                            case "rotation":
-                                for (int k = finalJ + 1; k < keyFrames.size(); k++) {
-                                    if (validKeyframe != null) break;
-                                    if (keyFrames.get(k).getType().equals("rotation")) {
-                                        validKeyframe = keyFrames.get(k);
-                                    }
-                                }
-                                if (validKeyframe != null) {
-                                    int smoothDuration = Math.round((validKeyframe.getTimeStamp() - keyFrame.getTimeStamp()) * 20);
-                                    RotateSmooth.SetBoneRotationWithChildrenSmooth(boneArray[finalI], validKeyframe.getXyz(), smoothDuration);
-                                }
-                                break;
-                            case "position":
-                                for (int k = finalJ + 1; k < keyFrames.size(); k++) {
-                                    if (validKeyframe != null) break;
-                                    if (keyFrames.get(k).getType().equals("position")) {
-                                        validKeyframe = keyFrames.get(k);
-                                    }
-                                }
-
-                                if (validKeyframe != null) {
-                                    Triple relPos = validKeyframe.getXyz().clone();
-                                    relPos.remove(keyFrame.getXyz());
-                                    relPos.divide(16);
-
-                                    int smoothDuration = Math.round((validKeyframe.getTimeStamp() - keyFrame.getTimeStamp()) * 20);
-                                    TeleportSmooth.TeleportBoneRelativeWithChildrenSmooth(boneArray[finalI], relPos, smoothDuration);
-                                }
-                                break;
-                            case "scale":
-                                //TODO SCALE
-                                break;
-                        }
-                    }
-                }.runTaskLater(MultiItemDisplayEngine.plugin, Math.round(keyFrame.getTimeStamp() * 20));
-            }
-        }
-
-        new BukkitRunnable(){
-            @Override
-            public void run() {
-                if (mode == Animation.LoopMode.LOOP) {
-                    animationState = AnimationState.FREE;
-                    //resetBonesPosAndRot();
-                    playAnimation(animationName);
-                } else if (mode == Animation.LoopMode.ONCE) {
-                    animationState = AnimationState.FREE;
-                    //resetBonesPosAndRot();
-                } else if (mode == Animation.LoopMode.HOLD) {
-                    animationState = AnimationState.HOLDING;
-                }
-            }
-        }.runTaskLater(MultiItemDisplayEngine.plugin, Math.round(animation.getLength() * 20) + 1);
-
-        return true;
-    }
-
-    /**
-     *
      * Teleports this itemDisplayGroup to some Location, this doesn't affect the rotation of the itemDisplayGroup
      *
      * @param location The location to teleport the itemDisplayGroup to.
      */
     public void teleport(Location location){
         Teleport.teleportItemDisplayGroup(this, location);
-    }
-
-    public UUID getUuid() {
-        return uuid;
     }
 
     /**
@@ -543,17 +227,6 @@ import java.util.*;
 
     /**
      *
-     * Sets the rotation of the whole itemDisplayGroup, using 4x4 matrices.
-     *
-     * @param rotation The rotation as an euler angle (3 angles) in degrees (360)
-     */
-    public void setRotation(Triple rotation){
-        Rotate.SetRotationItemDisplayGroup(this, rotation);
-        this.setRotationInEulerAngles(rotation);
-    }
-
-    /**
-     *
      * Adds some rotation to the whole itemDisplayGroup, using 4x4 matrices.
      *
      * @param rotation The rotation to add as an euler angle (3 angles) in degrees (360)
@@ -562,32 +235,6 @@ import java.util.*;
         Rotate.AddRotationItemDisplayGroup(this, rotation);
         Triple oldRotation = this.getRotationInEulerAngles();
         this.setRotationInEulerAngles(new Triple(oldRotation.x+ rotation.x, oldRotation.y+rotation.y, oldRotation.z+rotation.z));
-    }
-
-    /**
-     *
-     * Sets the rotation smoothly of the whole itemDisplayGroup, using 4x4 matrices.
-     *
-     * @param rotation The rotation as an euler angle (3 angles) in degrees (360)
-     * @param interpolationDuration How long it should take the itemDisplayGroup to get from its start rotation to the rotation given.
-     */
-    public void setRotationSmooth(Triple rotation, int interpolationDuration){
-        RotateSmooth.SetRotationItemDisplayGroupSmooth(this, rotation, interpolationDuration);
-        this.setRotationInEulerAngles(rotation);
-    }
-
-    public void setViewRange(int viewRange){
-        this.viewRangeSquared = viewRange*viewRange;
-    }
-
-    public int getViewRange(){
-        double distanceSquared = viewRangeSquared;
-        double distance = Math.sqrt(distanceSquared);
-        return (int) distance;
-    }
-
-    public int getViewRangeSquared(){
-        return viewRangeSquared;
     }
 
     /**
@@ -640,6 +287,43 @@ import java.util.*;
     }
 
     /**
+     *
+     * Sets the rotation of the whole itemDisplayGroup, using 4x4 matrices.
+     *
+     * @param rotation The rotation as an Euler angle (3 angles) in degrees (360)
+     */
+    public void setRotation(Triple rotation){
+        Rotate.SetRotationItemDisplayGroup(this, rotation);
+        this.setRotationInEulerAngles(rotation);
+    }
+
+    /**
+     *
+     * Sets the rotation smoothly of the whole itemDisplayGroup, using 4x4 matrices.
+     *
+     * @param rotation The rotation as an euler angle (3 angles) in degrees (360)
+     * @param interpolationDuration How long it should take the itemDisplayGroup to get from its start rotation to the rotation given.
+     */
+    public void setRotationSmooth(Triple rotation, int interpolationDuration){
+        RotateSmooth.SetRotationItemDisplayGroupSmooth(this, rotation, interpolationDuration);
+        this.setRotationInEulerAngles(rotation);
+    }
+
+    public void setViewRange(int viewRange){
+        this.viewRangeSquared = viewRange*viewRange;
+    }
+
+    public int getViewRange(){
+        double distanceSquared = viewRangeSquared;
+        double distance = Math.sqrt(distanceSquared);
+        return (int) distance;
+    }
+
+    public int getViewRangeSquared(){
+        return viewRangeSquared;
+    }
+
+    /**
      * Gets the rotation as a triple in the following order RPY (Yaw, Pitch, Roll)
      * @return The triple holding the euler angles (in degrees)
      */
@@ -668,10 +352,8 @@ import java.util.*;
 
     public Bone getRootBone() {return this.rootBone;}
 
-    public AnimationState getAnimationState() {return this.animationState;}
-
-    public void setAnimationState(AnimationState animationState) {
-        this.animationState = animationState;
+    public UUID getUuid() {
+        return uuid;
     }
 
     public static List<UUID> getAllUuids(){
@@ -682,6 +364,7 @@ import java.util.*;
 
         return out;
     }
+
     public static ItemDisplayGroup getItemDisplayGroup(UUID uuid){
         for(ItemDisplayGroup group : allItemDisplayGroups){
             if(group.getUuid().equals(uuid)) return group;
@@ -692,5 +375,21 @@ import java.util.*;
 
     public static List<ItemDisplayGroup> getAllItemDisplayGroups(){
         return allItemDisplayGroups;
+    }
+
+    public String getModelName() {
+        return modelName;
+    }
+
+    public JsonObject getRootJson() {
+        return rootJson;
+    }
+
+    public IDGPacketHandler getPacketHandler() {
+        return packetHandler;
+    }
+
+    public IDGAnimationHandler getAnimationHandler() {
+        return animationHandler;
     }
 }

@@ -15,15 +15,11 @@ import org.bukkit.util.Transformation;
 import org.dopelegend.multiItemDisplayEngine.MultiItemDisplayEngine;
 import org.dopelegend.multiItemDisplayEngine.itemDisplay.utils.itemDisplayGroups.ItemDisplayGroup;
 import org.dopelegend.multiItemDisplayEngine.utils.CustomModelData;
-import org.dopelegend.multiItemDisplayEngine.utils.Uuid;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 
 /**
@@ -37,7 +33,7 @@ public class Element {
     Triple to;
     Triple origin;
     Triple rotation = new Triple(0, 0, 0);
-    String uuid;
+    UUID uuid;
     String fileName;
     double[] resolution = new double[2];
     List<Pair<int[], String>> faces = new ArrayList<>();
@@ -64,7 +60,7 @@ public class Element {
             this.resolution[0] = rootJson.get("resolution").getAsJsonObject().get("width").getAsDouble();
             this.resolution[1] = rootJson.get("resolution").getAsJsonObject().get("height").getAsDouble();
             // Make uuid
-            this.uuid = elementJson.get("uuid").getAsString();
+            this.uuid = UUID.fromString(elementJson.get("uuid").getAsString());
 
             // Get from list
             JsonArray fromArray = elementJson.get("from").getAsJsonArray();
@@ -241,7 +237,7 @@ public class Element {
         return origin;
     }
 
-    public String getUuid() {
+    public UUID getUuid() {
         return uuid;
     }
 

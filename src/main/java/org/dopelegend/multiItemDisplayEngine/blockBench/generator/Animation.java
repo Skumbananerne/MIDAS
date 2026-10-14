@@ -3,7 +3,7 @@ package org.dopelegend.multiItemDisplayEngine.blockBench.generator;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import org.dopelegend.multiItemDisplayEngine.blockBench.Bone;
+import org.dopelegend.multiItemDisplayEngine.bone.Bone;
 import org.dopelegend.multiItemDisplayEngine.utils.classes.Triple;
 
 import java.util.*;
@@ -99,9 +99,9 @@ public class Animation {
         Map<Bone, List<KeyFrame>> keyFrames = new HashMap<>();
 
         for (Bone bone : rootBone.getAllChildrenBones(true)){
-            if (!animators.has(bone.getUUID())){continue;}
+            if (!animators.has(bone.getUUID().toString())){continue;}
 
-            JsonObject animator = animators.get(bone.getUUID()).getAsJsonObject();
+            JsonObject animator = animators.get(bone.getUUID().toString()).getAsJsonObject();
 
             List<KeyFrame> animatorKeyFrames = new ArrayList<>();
 
